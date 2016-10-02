@@ -42,15 +42,25 @@ parser.add_argument('-r', '--remove', metavar='FILE',
 parser.add_argument('-s', '--specialize', metavar='FILE',
                     help='Specialize a dotfile from the repository');
 
-def cleanup(dotfile_name):
-    print('Removing {} and its symlink'.format(dotfile_name))
+def cleanup(dotfile_path):
+    """Removes a dotfile from the stage and the symlink from $HOME.
+
+    Args:
+        dotfile_path: The relative path to the dotfile to remove.
+    """
+    print('Removing {} and its symlink'.format(dotfile_path))
     try:
-        remove(home_path(dotfile_name))
+        remove(home_path(dotfile_path))
     except FileNotFoundError:
-        print('Symlink for {} not found'.format(dotfile_name))
-    remove(stage_path(dotfile_name))
+        print('Symlink for {} not found'.format(dotfile_path))
+    remove(stage_path(dotfile_path))
 
 def cleanup_directory(directory_path):
+    """Recursively removes dotfiles from the stage and their symlinks from $HOME.
+
+    Args:
+        directory_path: The relative path to the directory to clean.
+    """
     for entry in listdir(stage_path(directory_path)):
         full_path = directory_path + '/' + entry
         if isdir(full_path):
@@ -59,6 +69,15 @@ def cleanup_directory(directory_path):
             cleanup(full_path)
 
 def generalize(dotfile_path, tags):
+    """Generalizes a dotfile from the stage.
+
+    Identifies and un-comments blocks deactivated for this host.
+    The generalized file is written to the repository.
+
+    Args:
+        dotfile_path: The relative path to the dotfile to generalize.
+        tags:         The tags for this host.
+    """
     print('Generalizing ' + dotfile_path)
     specific_content = None
     with open(stage_path(dotfile_path)) as specific_dotfile:
@@ -92,6 +111,12 @@ def generalize(dotfile_path, tags):
                 generic_dotfile.write(line)
 
 def generalize_directory(directory_path, tags):
+    """Recursively generalizes a directory of dotfiles on stage.
+
+    Args:
+        directory_path: The relative path to the directory to generalize.
+        tags:           The tags for this host.
+    """
     for entry in listdir(stage_path(directory_path)):
         if entry == '.git':
             continue
@@ -102,6 +127,13 @@ def generalize_directory(directory_path, tags):
             generalize(full_path, tags)
 
 def get_tags():
+    """Parses the dotmgr config file and extracts the tags for the current host.
+
+    Reads the hostname and searches the dotmgr config for a line defining tags for the host.
+
+    Returns:
+        The tags defined for the current host.
+    """
     hostname = gethostname()
     tag_config = None
     with open(dotfile_tag_config_path) as config:
@@ -116,9 +148,25 @@ def get_tags():
             return tags
 
 def home_path(dotfile_name):
+    """Returns the absolute path to a named dotfile in the user's $HOME directory.
+
+    Args:
+        dotfile_name: The name of the dotfile whose path should by synthesized.
+
+    Returns:
+        The absolute path to the dotfile in the user's $HOME directory.
+    """
     return expanduser('~/{}'.format(dotfile_name))
 
 def identify_comment_sequence(line):
+    """Parses a line and extracts the comment character sequence.
+
+    Args:
+        line: A commented (!) line from the config file.
+
+    Returns:
+        The characters used to start a comment line.
+    """
     matches = re.findall(r'\S+', line)
     if not matches:
         print('Could not identify a comment character!')
@@ -129,6 +177,11 @@ def identify_comment_sequence(line):
     return seq
 
 def link(dotfile_path):
+    """Links a dotfile from the stage to $HOME.
+
+    Args:
+        dotfile_path: The relative path to the dotfile to link.
+    """
     link = home_path(dotfile_path)
     if exists(link):
         return
@@ -138,18 +191,40 @@ def link(dotfile_path):
     makedirs(dirname(link), exist_ok=True)
     symlink(dest, link)
 
-def link_directory(path):
-    for entry in listdir(stage_path(path)):
-        full_path = path + '/' + entry
+def link_directory(directory_path):
+    """Recursively links a directory of dotfiles from the stage to $HOME.
+
+    Args:
+        directory_path: The relative path to the directory to link.
+    """
+    for entry in listdir(stage_path(directory_path)):
+        full_path = directory_path + '/' + entry
         if isdir(stage_path(full_path)):
             link_directory(full_path)
         else:
             link(full_path)
 
 def repo_path(dotfile_name):
+    """Returns the absolute path to a named dotfile in the repository.
+
+    Args:
+        dotfile_name: The name of the dotfile whose path should by synthesized.
+
+    Returns:
+        The absolute path to the dotfile in the repository.
+    """
     return dotfile_repository_path + '/' + dotfile_name
 
 def specialize(dotfile_path, tags):
+    """Specializes a dotfile from the repository.
+
+    Identifies and comments out blocks not valid for this host.
+    The specialized file is written to the stage directory.
+
+    Args:
+        dotfile_path: The relative path to the dotfile to specialize.
+        tags:         The tags for this host.
+    """
     print('Specializing ' + dotfile_path)
     generic_content = None
     with open(repo_path(dotfile_path)) as generic_dotfile:
@@ -191,6 +266,12 @@ def specialize(dotfile_path, tags):
                 specific_dotfile.write(line)
 
 def specialize_directory(directory_path, tags):
+    """Recursively specializes a directory of dotfiles from the repository.
+
+    Args:
+        directory_path: The relative path to the directory to specialize.
+        tags:           The tags for this host.
+    """
     for entry in listdir(repo_path(directory_path)):
         if entry == '.git':
             continue
@@ -201,9 +282,21 @@ def specialize_directory(directory_path, tags):
             specialize(full_path, tags)
 
 def stage_path(dotfile_name):
+    """Returns the absolute path to a named dotfile on stage.
+
+    Args:
+        dotfile_name: The name of the dotfile whose path should by synthesized.
+
+    Returns:
+        The absolute stage path to the dotfile.
+    """
     return dotfile_stage_path + '/' + dotfile_name
 
 def update_symlinks():
+    """Creates missing symlinks to all dotfiles on stage.
+
+    Also automagically creates missing folders in $HOME.
+    """
     for entry in listdir(dotfile_stage_path):
         if isdir(stage_path(entry)):
             link_directory(entry)
