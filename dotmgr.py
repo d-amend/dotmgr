@@ -63,12 +63,33 @@ def generalize(dotfile_path, tags):
     specific_content = None
     with open(stage_path(dotfile_path)) as specific_dotfile:
         specific_content = specific_dotfile.readlines()
+    if not specific_content:
+        return
 
     makedirs(repo_path(dirname(dotfile_path)), exist_ok=True)
+    cseq = identify_comment_sequence(specific_content[0])
+
+    makedirs(stage_path(dirname(dotfile_path)), exist_ok=True)
     with open(repo_path(dotfile_path), 'w') as generic_dotfile:
+        strip = False
         for line in specific_content:
-            # TODO
-            generic_dotfile.write(line)
+            if '{0}{0}only'.format(cseq) in line \
+            or '{0}{0}not'.format(cseq) in line:
+                section_tags = line.split()
+                section_tags = section_tags[1:]
+                if DEBUG:
+                    print('Found section with tags {}'.format(', '.join(section_tags)))
+                generic_dotfile.write(line)
+                strip = True
+                continue
+
+            if '{0}{0}end'.format(cseq) in line:
+                strip = False
+
+            if strip:
+                generic_dotfile.write(line.split(cseq)[-1])
+            else:
+                generic_dotfile.write(line)
 
 def generalize_directory(directory_path, tags):
     for entry in listdir(stage_path(directory_path)):
