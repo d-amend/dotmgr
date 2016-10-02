@@ -140,13 +140,34 @@ def specialize(dotfile_path, tags):
 
     makedirs(stage_path(dirname(dotfile_path)), exist_ok=True)
     with open(stage_path(dotfile_path), 'w') as specific_dotfile:
+        comment_out = False
         for line in generic_content:
             if '{0}{0}only'.format(cseq) in line:
-                active_tags = line.split()
-                active_tags = active_tags[1:]
+                section_tags = line.split()
+                section_tags = section_tags[1:]
                 if DEBUG:
-                    print('Found section only for {}'.format(', '.join(active_tags)))
-            specific_dotfile.write(line)
+                    print('Found section only for {}'.format(', '.join(section_tags)))
+                if not [tag for tag in tags if tag in section_tags]:
+                    specific_dotfile.write(line)
+                    comment_out = True
+                    continue
+            if '{0}{0}not'.format(cseq) in line:
+                section_tags = line.split()
+                section_tags = section_tags[1:]
+                if DEBUG:
+                    print('Found section not for {}'.format(', '.join(section_tags)))
+                if [tag for tag in tags if tag in section_tags]:
+                    specific_dotfile.write(line)
+                    comment_out = True
+                    continue
+
+            if '{0}{0}end'.format(cseq) in line:
+                comment_out = False
+
+            if comment_out:
+                specific_dotfile.write(cseq + line)
+            else:
+                specific_dotfile.write(line)
 
 def specialize_directory(directory_path, tags):
     for entry in listdir(repo_path(directory_path)):
