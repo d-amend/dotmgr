@@ -153,6 +153,8 @@ def get_tags():
             if verbose:
                 print('Found tags: {}'.format(', '.join(tags)))
             return tags
+    print('Warning: No tags found for this machine!')
+    return [""]
 
 def home_path(dotfile_name):
     """Returns the absolute path to a named dotfile in the user's $HOME directory.
