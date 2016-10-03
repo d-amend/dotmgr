@@ -83,8 +83,12 @@ def generalize(dotfile_path, tags):
     """
     print('Generalizing ' + dotfile_path)
     specific_content = None
-    with open(stage_path(dotfile_path)) as specific_dotfile:
-        specific_content = specific_dotfile.readlines()
+    try:
+        with open(stage_path(dotfile_path)) as specific_dotfile:
+            specific_content = specific_dotfile.readlines()
+    except FileNotFoundError:
+        print('It seems {0} is not handled by dotmgr.\n'
+              'You can add it with `{1} -a {0}`.'.format(dotfile_path, __file__))
     if not specific_content:
         return
 
