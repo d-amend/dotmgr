@@ -55,8 +55,11 @@ def cleanup(dotfile_path):
     try:
         remove(home_path(dotfile_path))
     except FileNotFoundError:
-        print('Symlink for {} not found'.format(dotfile_path))
-    remove(stage_path(dotfile_path))
+        print('Warning: Symlink for {} not found'.format(dotfile_path))
+    try:
+        remove(stage_path(dotfile_path))
+    except FileNotFoundError:
+        print('Warning: {} is not on stage'.format(dotfile_path))
 
 def cleanup_directory(directory_path):
     """Recursively removes dotfiles from the stage and their symlinks from $HOME.
