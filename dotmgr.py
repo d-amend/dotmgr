@@ -384,6 +384,7 @@ if __name__ == "__main__":
                 specialize(entry, tags)
         if args.link_all:
             update_symlinks()
+        exit()
     if args.add:
         dotfile_name = args.add
         home = home_path(dotfile_name);
@@ -406,3 +407,4 @@ if __name__ == "__main__":
         if args.link:
             link(args.specialize)
         exit()
+    parser.print_help()
