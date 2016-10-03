@@ -276,7 +276,7 @@ def specialize_directory(directory_path, tags):
         if entry == '.git':
             continue
         full_path = directory_path + '/' + entry
-        if isdir(stage_path(full_path)):
+        if isdir(repo_path(full_path)):
             specialize_directory(full_path, tags)
         else:
             specialize(full_path, tags)
