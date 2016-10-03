@@ -249,6 +249,7 @@ def specialize(dotfile_path, tags):
                     specific_dotfile.write(line)
                     comment_out = True
                     continue
+                comment_out = False
             if '{0}{0}not'.format(cseq) in line:
                 section_tags = line.split()
                 section_tags = section_tags[1:]
@@ -258,6 +259,7 @@ def specialize(dotfile_path, tags):
                     specific_dotfile.write(line)
                     comment_out = True
                     continue
+                comment_out = False
 
             if '{0}{0}end'.format(cseq) in line:
                 comment_out = False

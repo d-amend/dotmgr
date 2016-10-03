@@ -26,6 +26,15 @@ echo Non-tagC hosts only
 ## end
 ```
 
+Tag-blocks can also be used in an if-else kind of style:
+```
+## only tagA
+echo Hello dotmgr
+## not tagB
+echo Cheers dotmgr
+## end
+```
+
 ## Stage directory
 This directory contains the specific dotfiles for the current host. During installation (specialization), dotmgr creates symlinks in the system that point into the stage.
 
