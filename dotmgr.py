@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 from argparse import ArgumentParser
 from os import environ, listdir, makedirs, makedirs, remove, symlink
-from os.path import dirname, exists, expanduser, isdir, islink
+from os.path import dirname, exists, expanduser, isdir, isfile, islink
 from shutil import move, rmtree
 from socket import gethostname
 from sys import exit
@@ -11,8 +11,8 @@ import re
 DEBUG = True
 
 default_dotfile_repository_path = '~/repositories/dotfiles'
-default_dotfile_stage_path      = 'stage'
-default_dotfile_tag_config_path = 'dotmgr.conf'
+default_dotfile_stage_path      = '~/.local/share/dotmgr/stage'
+default_dotfile_tag_config_path = '.config/dotmgr/tags.conf'
 dotfile_repository_path = None
 dotfile_stage_path      = None
 dotfile_tag_config_path = None
@@ -20,8 +20,8 @@ dotfile_tag_config_path = None
 parser = ArgumentParser(description='Generalize / specialize dotfiles',
                         epilog="""Required files and paths:
 General dotfiles are read from / written to {}. You can set the environment variable $DOTMGR_REPO to change this.
-The default stage directory is $DOTMGR_REPO/{}. This can be overridden with $DOTMGR_STAGE.
-Tags are read from $DOTMGR_REPO/{}, which can be changed by setting $DOTMGR_TAG_CONF.
+The default stage directory is {}. This can be overridden with $DOTMGR_STAGE.
+Tags are read from $HOME/{}, which can be changed by setting $DOTMGR_TAG_CONF.
 """.format(default_dotfile_repository_path, default_dotfile_stage_path, default_dotfile_tag_config_path))
 parser.add_argument('-C', '--clean', action='store_true',
                     help='Remove all symlinks and clear the stage');
@@ -33,6 +33,8 @@ parser.add_argument('-S', '--specialize-all', action='store_true',
                     help='Specialize all dotfiles in the repository');
 parser.add_argument('-a', '--add', metavar='FILE',
                     help='Add a dotfile from the home directory');
+parser.add_argument('-b', '--bootstrap', action='store_true',
+                    help='Read the tag configuration from the repository instead of $HOME');
 parser.add_argument('-g', '--generalize', metavar='FILE',
                     help='Generalize a dotfile from the stage');
 parser.add_argument('-l', '--link', action='store_true',
@@ -304,6 +306,9 @@ def update_symlinks():
             link(entry)
 
 if __name__ == "__main__":
+    # Check and parse arguments
+    args = parser.parse_args()
+
     # Prepare dotfile repository path
     dotfile_repository_path = expanduser(default_dotfile_repository_path)
     if 'DOTMGR_REPO' in environ:
@@ -313,19 +318,28 @@ if __name__ == "__main__":
         exit()
 
     # Prepare dotfile stage path
-    dotfile_stage_path = expanduser(default_dotfile_repository_path + '/' + default_dotfile_stage_path)
+    dotfile_stage_path = expanduser(default_dotfile_stage_path)
     if 'DOTMGR_STAGE' in environ:
         dotfile_stage_path = environ['DOTMGR_STAGE']
     if not exists(dotfile_stage_path):
         makedirs(dotfile_stage_path)
 
-    # Prepare tag config path
-    dotfile_tag_config_path = expanduser(default_dotfile_repository_path + '/' + default_dotfile_tag_config_path)
-    if 'DOTMGR_TAG_CONF' in environ:
-        dotfile_tag_config_path = environ['DOTMGR_TAG_CONF']
+    # Prepare tag config path and check if it exists
+    if args.bootstrap:
+        dotfile_tag_config_path = dotfile_repository_path + '/' + default_dotfile_tag_config_path
+    else:
+        dotfile_tag_config_path = expanduser('~/' + default_dotfile_tag_config_path)
+        if 'DOTMGR_TAG_CONF' in environ:
+            dotfile_tag_config_path = environ['DOTMGR_TAG_CONF']
 
-    # Parse arguments and execute selected action
-    args = parser.parse_args()
+    if not isfile(dotfile_tag_config_path):
+        print('Error: Tag configuration file "{}" not found!\n'
+              '       You can use -b to bootstrap it from your dotfile repository\n'
+              '       or set $DOTMGR_TAG_CONF to override the default path.'\
+              .format(dotfile_tag_config_path))
+        exit()
+
+    # Execute selected action
     if args.clean:
         print('Cleaning')
         for entry in listdir(dotfile_stage_path):
