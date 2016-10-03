@@ -8,14 +8,13 @@ from sys import exit
 
 import re
 
-DEBUG = True
-
 default_dotfile_repository_path = '~/repositories/dotfiles'
 default_dotfile_stage_path      = '~/.local/share/dotmgr/stage'
 default_dotfile_tag_config_path = '.config/dotmgr/tags.conf'
 dotfile_repository_path = None
 dotfile_stage_path      = None
 dotfile_tag_config_path = None
+verbose = False
 
 parser = ArgumentParser(description='Generalize / specialize dotfiles',
                         epilog="""Required files and paths:
@@ -43,6 +42,8 @@ parser.add_argument('-r', '--remove', metavar='FILE',
                     help='Remove a dotfile from the stage and delete its symlink');
 parser.add_argument('-s', '--specialize', metavar='FILE',
                     help='Specialize a dotfile from the repository');
+parser.add_argument('-v', '--verbose', action='store_true',
+                    help='Enable verbose output (useful for debugging)');
 
 def cleanup(dotfile_path):
     """Removes a dotfile from the stage and the symlink from $HOME.
@@ -98,7 +99,7 @@ def generalize(dotfile_path, tags):
             or '{0}{0}not'.format(cseq) in line:
                 section_tags = line.split()
                 section_tags = section_tags[1:]
-                if DEBUG:
+                if verbose:
                     print('Found section with tags {}'.format(', '.join(section_tags)))
                 generic_dotfile.write(line)
                 strip = True
@@ -145,7 +146,7 @@ def get_tags():
         if line.startswith(hostname + ':'):
             tags = line.split(':')[1]
             tags = tags.split()
-            if DEBUG:
+            if verbose:
                 print('Found tags: {}'.format(', '.join(tags)))
             return tags
 
@@ -174,7 +175,7 @@ def identify_comment_sequence(line):
         print('Could not identify a comment character!')
         exit()
     seq = matches[0]
-    if DEBUG:
+    if verbose:
         print('Identified comment character sequence: {}'.format(seq))
     return seq
 
@@ -243,7 +244,7 @@ def specialize(dotfile_path, tags):
             if '{0}{0}only'.format(cseq) in line:
                 section_tags = line.split()
                 section_tags = section_tags[1:]
-                if DEBUG:
+                if verbose:
                     print('Found section only for {}'.format(', '.join(section_tags)))
                 if not [tag for tag in tags if tag in section_tags]:
                     specific_dotfile.write(line)
@@ -253,7 +254,7 @@ def specialize(dotfile_path, tags):
             if '{0}{0}not'.format(cseq) in line:
                 section_tags = line.split()
                 section_tags = section_tags[1:]
-                if DEBUG:
+                if verbose:
                     print('Found section not for {}'.format(', '.join(section_tags)))
                 if [tag for tag in tags if tag in section_tags]:
                     specific_dotfile.write(line)
@@ -340,6 +341,10 @@ if __name__ == "__main__":
               '       or set $DOTMGR_TAG_CONF to override the default path.'\
               .format(dotfile_tag_config_path))
         exit()
+
+    # Enable verbose mode if requested
+    if args.verbose:
+        verbose = True
 
     # Execute selected action
     if args.clean:
