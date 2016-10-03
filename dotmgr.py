@@ -386,7 +386,7 @@ if __name__ == "__main__":
         if islink(home):
             exit()
         stage = stage_path(dotfile_name);
-        print('Moving dotfile {} => {}'.format(home, stage))
+        print('Moving dotfile   {} => {}'.format(home, stage))
         move(home, stage)
         link(dotfile_name)
         generalize(dotfile_name, get_tags())
