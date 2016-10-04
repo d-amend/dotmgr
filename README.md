@@ -16,23 +16,23 @@ The dotfile repository path default is `~/repositories/dotfiles`. It can be modi
 ## Tag-blocks
 Using double-comments and the keywords `only` and `not` tag-blocks are created:
 ```
-## only tagA tagB
+##only tagA tagB
 # ordinary comment
 echo Hello dotmgr
-## end
+##end
 
-## not tagC
+##not tagC
 echo Non-tagC hosts only
-## end
+##end
 ```
 
 Tag-blocks can also be used in an if-else kind of style:
 ```
-## only tagA
+##only tagA
 echo Hello dotmgr
-## not tagB
+##not tagB
 echo Cheers dotmgr
-## end
+##end
 ```
 
 ## Stage directory
