@@ -102,21 +102,33 @@ def generalize(dotfile_path, tags):
     with open(repo_path(dotfile_path), 'w') as generic_dotfile:
         strip = False
         for line in specific_content:
-            if '{0}{0}only'.format(cseq) in line \
-            or '{0}{0}not'.format(cseq) in line:
+            if '{0}{0}only'.format(cseq) in line:
                 section_tags = line.split()
                 section_tags = section_tags[1:]
                 if verbose:
-                    print('Found section with tags {}'.format(', '.join(section_tags)))
-                generic_dotfile.write(line)
-                strip = True
-                continue
+                    print('Found section only for {}'.format(', '.join(section_tags)))
+                if not [tag for tag in tags if tag in section_tags]:
+                    generic_dotfile.write(line)
+                    strip = True
+                    continue
+                strip = False
+            if '{0}{0}not'.format(cseq) in line:
+                section_tags = line.split()
+                section_tags = section_tags[1:]
+                if verbose:
+                    print('Found section not for {}'.format(', '.join(section_tags)))
+                if [tag for tag in tags if tag in section_tags]:
+                    generic_dotfile.write(line)
+                    strip = True
+                    continue
+                strip = False
 
             if '{0}{0}end'.format(cseq) in line:
                 strip = False
 
             if strip:
-                generic_dotfile.write(line.split(cseq)[-1])
+                slices = line.split(cseq)
+                generic_dotfile.write(cseq.join(slices[1:]))
             else:
                 generic_dotfile.write(line)
 
