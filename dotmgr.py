@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 """Dotfile manager
 
 A small script that can help you maintain your dotfiles across several devices.
@@ -15,165 +15,295 @@ import re
 DEFAULT_DOTFILE_REPOSITORY_PATH = '~/repositories/dotfiles'
 DEFAULT_DOTFILE_STAGE_PATH = '~/.local/share/dotmgr/stage'
 DEFAULT_DOTFILE_TAG_CONFIG_PATH = '.config/dotmgr/tags.conf'
-dotfile_repository_path = None
-dotfile_stage_path = None
-dotfile_tag_config_path = None
-verbose = False
 
-parser = ArgumentParser(description='Generalize / specialize dotfiles',
-                        epilog="""Required files and paths:
-General dotfiles are read from / written to {}. You can set the environment variable $DOTMGR_REPO to change this.
-The default stage directory is {}. This can be overridden with $DOTMGR_STAGE.
-Tags are read from $HOME/{}, which can be changed by setting $DOTMGR_TAG_CONF.
-""".format(DEFAULT_DOTFILE_REPOSITORY_PATH, DEFAULT_DOTFILE_STAGE_PATH, DEFAULT_DOTFILE_TAG_CONFIG_PATH))
-parser.add_argument('-C', '--clean', action='store_true',
-                    help='Remove all symlinks and clear the stage')
-parser.add_argument('-G', '--generalize-all', action='store_true',
-                    help='Generalize all dotfiles currently on stage')
-parser.add_argument('-L', '--link-all', action='store_true',
-                    help='Update all symlinks (use in conjunction with -S)')
-parser.add_argument('-S', '--specialize-all', action='store_true',
-                    help='Specialize all dotfiles in the repository')
-parser.add_argument('-a', '--add', metavar='FILE',
-                    help='Add a dotfile from the home directory')
-parser.add_argument('-b', '--bootstrap', action='store_true',
-                    help='Read the tag configuration from the repository instead of $HOME')
-parser.add_argument('-g', '--generalize', metavar='FILE',
-                    help='Generalize a dotfile from the stage')
-parser.add_argument('-l', '--link', action='store_true',
-                    help='Place a symlink to a file on stage (use in conjunction with -s)')
-parser.add_argument('-r', '--remove', metavar='FILE',
-                    help='Remove a dotfile from the stage and delete its symlink')
-parser.add_argument('-s', '--specialize', metavar='FILE',
-                    help='Specialize a dotfile from the repository')
-parser.add_argument('-v', '--verbose', action='store_true',
-                    help='Enable verbose output (useful for debugging)')
+class Manager(object):
+    """An instance of this class can be used to generalize or specialize dotfiles.
 
-def cleanup(dotfile_path):
-    """Removes a dotfile from the stage and the symlink from $HOME.
-
-    Args:
-        dotfile_path: The relative path to the dotfile to remove.
+    Attributes:
+        dotfile_repository_path: The absolute path to the dotfile repository.
+        dotfile_stage_path: The absolute path to the dotfile stage directory.
+        dotfile_tag_config_path: The absolute path to the dotfile tag configuration file.
+        verbose: If set to `True`, debug messages are generated.
     """
-    print('Removing {} and its symlink'.format(dotfile_path))
-    try:
-        remove(home_path(dotfile_path))
-    except FileNotFoundError:
-        print('Warning: Symlink for {} not found'.format(dotfile_path))
-    try:
-        remove(stage_path(dotfile_path))
-    except FileNotFoundError:
-        print('Warning: {} is not on stage'.format(dotfile_path))
 
-def cleanup_directory(directory_path):
-    """Recursively removes dotfiles from the stage and their symlinks from $HOME.
+    def __init__(self, dotfile_repository_path, dotfile_stage_path, dotfile_tag_config_path, verbose):
+        self.dotfile_repository_path = dotfile_repository_path
+        self.dotfile_stage_path = dotfile_stage_path
+        self.dotfile_tag_config_path = dotfile_tag_config_path
+        self.verbose = verbose
 
-    Args:
-        directory_path: The relative path to the directory to clean.
-    """
-    for entry in listdir(stage_path(directory_path)):
-        full_path = directory_path + '/' + entry
-        if isdir(full_path):
-            cleanup_directory(full_path)
-        else:
-            cleanup(full_path)
+    def cleanup(self, dotfile_path):
+        """Removes a dotfile from the stage and the symlink from $HOME.
 
-def generalize(dotfile_path, tags):
-    """Generalizes a dotfile from the stage.
+        Args:
+            dotfile_path: The relative path to the dotfile to remove.
+        """
+        print('Removing {} and its symlink'.format(dotfile_path))
+        try:
+            remove(home_path(dotfile_path))
+        except FileNotFoundError:
+            print('Warning: Symlink for {} not found'.format(dotfile_path))
+        try:
+            remove(self.stage_path(dotfile_path))
+        except FileNotFoundError:
+            print('Warning: {} is not on stage'.format(dotfile_path))
 
-    Identifies and un-comments blocks deactivated for this host.
-    The generalized file is written to the repository.
+    def cleanup_directory(self, directory_path):
+        """Recursively removes dotfiles from the stage and their symlinks from $HOME.
 
-    Args:
-        dotfile_path: The relative path to the dotfile to generalize.
-        tags:         The tags for this host.
-    """
-    print('Generalizing ' + dotfile_path)
-    specific_content = None
-    try:
-        with open(stage_path(dotfile_path)) as specific_dotfile:
-            specific_content = specific_dotfile.readlines()
-    except FileNotFoundError:
-        print('It seems {0} is not handled by dotmgr.\n'
-              'You can add it with `{1} -a {0}`.'.format(dotfile_path, __file__))
-    if not specific_content:
-        return
-
-    makedirs(repo_path(dirname(dotfile_path)), exist_ok=True)
-    cseq = identify_comment_sequence(specific_content[0])
-
-    makedirs(stage_path(dirname(dotfile_path)), exist_ok=True)
-    with open(repo_path(dotfile_path), 'w') as generic_dotfile:
-        strip = False
-        for line in specific_content:
-            if '{0}{0}only'.format(cseq) in line:
-                section_tags = line.split()
-                section_tags = section_tags[1:]
-                if verbose:
-                    print('Found section only for {}'.format(', '.join(section_tags)))
-                if not [tag for tag in tags if tag in section_tags]:
-                    generic_dotfile.write(line)
-                    strip = True
-                    continue
-                strip = False
-            if '{0}{0}not'.format(cseq) in line:
-                section_tags = line.split()
-                section_tags = section_tags[1:]
-                if verbose:
-                    print('Found section not for {}'.format(', '.join(section_tags)))
-                if [tag for tag in tags if tag in section_tags]:
-                    generic_dotfile.write(line)
-                    strip = True
-                    continue
-                strip = False
-
-            if '{0}{0}end'.format(cseq) in line:
-                strip = False
-
-            if strip:
-                slices = line.split(cseq)
-                generic_dotfile.write(cseq.join(slices[1:]))
+        Args:
+            directory_path: The relative path to the directory to clean.
+        """
+        for entry in listdir(self.stage_path(directory_path)):
+            full_path = directory_path + '/' + entry
+            if isdir(self.stage_path(full_path)):
+                self.cleanup_directory(full_path)
             else:
-                generic_dotfile.write(line)
+                self.cleanup(full_path)
 
-def generalize_directory(directory_path, tags):
-    """Recursively generalizes a directory of dotfiles on stage.
+    def generalize(self, dotfile_path, tags):
+        """Generalizes a dotfile from the stage.
 
-    Args:
-        directory_path: The relative path to the directory to generalize.
-        tags:           The tags for this host.
-    """
-    for entry in listdir(stage_path(directory_path)):
-        if entry == '.git':
-            continue
-        full_path = directory_path + '/' + entry
-        if isdir(full_path):
-            generalize_directory(full_path, tags)
-        else:
-            generalize(full_path, tags)
+        Identifies and un-comments blocks deactivated for this host.
+        The generalized file is written to the repository.
 
-def get_tags():
-    """Parses the dotmgr config file and extracts the tags for the current host.
+        Args:
+            dotfile_path: The relative path to the dotfile to generalize.
+            tags:         The tags for this host.
+        """
+        print('Generalizing ' + dotfile_path)
+        specific_content = None
+        try:
+            with open(self.stage_path(dotfile_path)) as specific_dotfile:
+                specific_content = specific_dotfile.readlines()
+        except FileNotFoundError:
+            print('It seems {0} is not handled by dotmgr.\n'
+                  'You can add it with `{1} -a {0}`.'.format(dotfile_path, __file__))
+        if not specific_content:
+            return
 
-    Reads the hostname and searches the dotmgr config for a line defining tags for the host.
+        makedirs(self.repo_path(dirname(dotfile_path)), exist_ok=True)
+        cseq = self.identify_comment_sequence(specific_content[0])
 
-    Returns:
-        The tags defined for the current host.
-    """
-    hostname = gethostname()
-    tag_config = None
-    with open(dotfile_tag_config_path) as config:
-        tag_config = config.readlines()
+        makedirs(self.stage_path(dirname(dotfile_path)), exist_ok=True)
+        with open(self.repo_path(dotfile_path), 'w') as generic_dotfile:
+            strip = False
+            for line in specific_content:
+                if '{0}{0}only'.format(cseq) in line:
+                    section_tags = line.split()
+                    section_tags = section_tags[1:]
+                    if self.verbose:
+                        print('Found section only for {}'.format(', '.join(section_tags)))
+                    if not [tag for tag in tags if tag in section_tags]:
+                        generic_dotfile.write(line)
+                        strip = True
+                        continue
+                    strip = False
+                if '{0}{0}not'.format(cseq) in line:
+                    section_tags = line.split()
+                    section_tags = section_tags[1:]
+                    if self.verbose:
+                        print('Found section not for {}'.format(', '.join(section_tags)))
+                    if [tag for tag in tags if tag in section_tags]:
+                        generic_dotfile.write(line)
+                        strip = True
+                        continue
+                    strip = False
 
-    for line in tag_config:
-        if line.startswith(hostname + ':'):
-            tags = line.split(':')[1]
-            tags = tags.split()
-            if verbose:
-                print('Found tags: {}'.format(', '.join(tags)))
-            return tags
-    print('Warning: No tags found for this machine!')
-    return [""]
+                if '{0}{0}end'.format(cseq) in line:
+                    strip = False
+
+                if strip:
+                    slices = line.split(cseq)
+                    generic_dotfile.write(cseq.join(slices[1:]))
+                else:
+                    generic_dotfile.write(line)
+
+    def generalize_directory(self, directory_path, tags):
+        """Recursively generalizes a directory of dotfiles on stage.
+
+        Args:
+            directory_path: The relative path to the directory to generalize.
+            tags:           The tags for this host.
+        """
+        for entry in listdir(self.stage_path(directory_path)):
+            if entry == '.git':
+                continue
+            full_path = directory_path + '/' + entry
+            if isdir(self.stage_path(full_path)):
+                self.generalize_directory(full_path, tags)
+            else:
+                self.generalize(full_path, tags)
+
+    def get_tags(self):
+        """Parses the dotmgr config file and extracts the tags for the current host.
+
+        Reads the hostname and searches the dotmgr config for a line defining tags for the host.
+
+        Returns:
+            The tags defined for the current host.
+        """
+        hostname = gethostname()
+        tag_config = None
+        with open(self.dotfile_tag_config_path) as config:
+            tag_config = config.readlines()
+
+        for line in tag_config:
+            if line.startswith(hostname + ':'):
+                tags = line.split(':')[1]
+                tags = tags.split()
+                if self.verbose:
+                    print('Found tags: {}'.format(', '.join(tags)))
+                return tags
+        print('Warning: No tags found for this machine!')
+        return [""]
+
+    def identify_comment_sequence(self, line):
+        """Parses a line and extracts the comment character sequence.
+
+        Args:
+            line: A commented (!) line from the config file.
+
+        Returns:
+            The characters used to start a comment line.
+        """
+        matches = re.findall(r'\S+', line)
+        if not matches:
+            print('Could not identify a comment character!')
+            exit()
+        seq = matches[0]
+        if self.verbose:
+            print('Identified comment character sequence: {}'.format(seq))
+        return seq
+
+    def link(self, dotfile_path):
+        """Links a dotfile from the stage to $HOME.
+
+        Args:
+            dotfile_path: The relative path to the dotfile to link.
+        """
+        link_path = home_path(dotfile_path)
+        if exists(link_path):
+            return
+
+        dest_path = self.stage_path(dotfile_path)
+        print("Creating symlink {} -> {}".format(link_path, dest_path))
+        makedirs(dirname(link_path), exist_ok=True)
+        symlink(dest_path, link_path)
+
+    def link_directory(self, directory_path):
+        """Recursively links a directory of dotfiles from the stage to $HOME.
+
+        Args:
+            directory_path: The relative path to the directory to link.
+        """
+        for entry in listdir(self.stage_path(directory_path)):
+            full_path = directory_path + '/' + entry
+            if isdir(self.stage_path(full_path)):
+                self.link_directory(full_path)
+            else:
+                self.link(full_path)
+
+    def repo_path(self, dotfile_name):
+        """Returns the absolute path to a named dotfile in the repository.
+
+        Args:
+            dotfile_name: The name of the dotfile whose path should by synthesized.
+
+        Returns:
+            The absolute path to the dotfile in the repository.
+        """
+        return self.dotfile_repository_path + '/' + dotfile_name
+
+    def specialize(self, dotfile_path, tags):
+        """Specializes a dotfile from the repository.
+
+        Identifies and comments out blocks not valid for this host.
+        The specialized file is written to the stage directory.
+
+        Args:
+            dotfile_path: The relative path to the dotfile to specialize.
+            tags:         The tags for this host.
+        """
+        print('Specializing ' + dotfile_path)
+        generic_content = None
+        with open(self.repo_path(dotfile_path)) as generic_dotfile:
+            generic_content = generic_dotfile.readlines()
+        if not generic_content:
+            return
+
+        cseq = self.identify_comment_sequence(generic_content[0])
+
+        makedirs(self.stage_path(dirname(dotfile_path)), exist_ok=True)
+        with open(self.stage_path(dotfile_path), 'w') as specific_dotfile:
+            comment_out = False
+            for line in generic_content:
+                if '{0}{0}only'.format(cseq) in line:
+                    section_tags = line.split()
+                    section_tags = section_tags[1:]
+                    if self.verbose:
+                        print('Found section only for {}'.format(', '.join(section_tags)))
+                    if not [tag for tag in tags if tag in section_tags]:
+                        specific_dotfile.write(line)
+                        comment_out = True
+                        continue
+                    comment_out = False
+                if '{0}{0}not'.format(cseq) in line:
+                    section_tags = line.split()
+                    section_tags = section_tags[1:]
+                    if self.verbose:
+                        print('Found section not for {}'.format(', '.join(section_tags)))
+                    if [tag for tag in tags if tag in section_tags]:
+                        specific_dotfile.write(line)
+                        comment_out = True
+                        continue
+                    comment_out = False
+
+                if '{0}{0}end'.format(cseq) in line:
+                    comment_out = False
+
+                if comment_out:
+                    specific_dotfile.write(cseq + line)
+                else:
+                    specific_dotfile.write(line)
+
+    def specialize_directory(self, directory_path, tags):
+        """Recursively specializes a directory of dotfiles from the repository.
+
+        Args:
+            directory_path: The relative path to the directory to specialize.
+            tags:           The tags for this host.
+        """
+        for entry in listdir(self.repo_path(directory_path)):
+            if entry == '.git':
+                continue
+            full_path = directory_path + '/' + entry
+            if isdir(self.repo_path(full_path)):
+                self.specialize_directory(full_path, tags)
+            else:
+                self.specialize(full_path, tags)
+
+    def stage_path(self, dotfile_name):
+        """Returns the absolute path to a named dotfile on stage.
+
+        Args:
+            dotfile_name: The name of the dotfile whose path should by synthesized.
+
+        Returns:
+            The absolute stage path to the dotfile.
+        """
+        return self.dotfile_stage_path + '/' + dotfile_name
+
+    def update_symlinks(self):
+        """Creates missing symlinks to all dotfiles on stage.
+
+        Also automagically creates missing folders in $HOME.
+        """
+        for entry in listdir(self.dotfile_stage_path):
+            if isdir(self.stage_path(entry)):
+                self.link_directory(entry)
+            else:
+                self.link(entry)
 
 def home_path(dotfile_name):
     """Returns the absolute path to a named dotfile in the user's $HOME directory.
@@ -186,156 +316,46 @@ def home_path(dotfile_name):
     """
     return expanduser('~/{}'.format(dotfile_name))
 
-def identify_comment_sequence(line):
-    """Parses a line and extracts the comment character sequence.
+def main():
+    """Program entry point.
 
-    Args:
-        line: A commented (!) line from the config file.
-
-    Returns:
-        The characters used to start a comment line.
+    Where things start to happen...
     """
-    matches = re.findall(r'\S+', line)
-    if not matches:
-        print('Could not identify a comment character!')
-        exit()
-    seq = matches[0]
-    if verbose:
-        print('Identified comment character sequence: {}'.format(seq))
-    return seq
-
-def link(dotfile_path):
-    """Links a dotfile from the stage to $HOME.
-
-    Args:
-        dotfile_path: The relative path to the dotfile to link.
-    """
-    link_path = home_path(dotfile_path)
-    if exists(link_path):
-        return
-
-    dest_path = stage_path(dotfile_path)
-    print("Creating symlink {} -> {}".format(link_path, dest_path))
-    makedirs(dirname(link_path), exist_ok=True)
-    symlink(dest_path, link_path)
-
-def link_directory(directory_path):
-    """Recursively links a directory of dotfiles from the stage to $HOME.
-
-    Args:
-        directory_path: The relative path to the directory to link.
-    """
-    for entry in listdir(stage_path(directory_path)):
-        full_path = directory_path + '/' + entry
-        if isdir(stage_path(full_path)):
-            link_directory(full_path)
-        else:
-            link(full_path)
-
-def repo_path(dotfile_name):
-    """Returns the absolute path to a named dotfile in the repository.
-
-    Args:
-        dotfile_name: The name of the dotfile whose path should by synthesized.
-
-    Returns:
-        The absolute path to the dotfile in the repository.
-    """
-    return dotfile_repository_path + '/' + dotfile_name
-
-def specialize(dotfile_path, tags):
-    """Specializes a dotfile from the repository.
-
-    Identifies and comments out blocks not valid for this host.
-    The specialized file is written to the stage directory.
-
-    Args:
-        dotfile_path: The relative path to the dotfile to specialize.
-        tags:         The tags for this host.
-    """
-    print('Specializing ' + dotfile_path)
-    generic_content = None
-    with open(repo_path(dotfile_path)) as generic_dotfile:
-        generic_content = generic_dotfile.readlines()
-    if not generic_content:
-        return
-
-    cseq = identify_comment_sequence(generic_content[0])
-
-    makedirs(stage_path(dirname(dotfile_path)), exist_ok=True)
-    with open(stage_path(dotfile_path), 'w') as specific_dotfile:
-        comment_out = False
-        for line in generic_content:
-            if '{0}{0}only'.format(cseq) in line:
-                section_tags = line.split()
-                section_tags = section_tags[1:]
-                if verbose:
-                    print('Found section only for {}'.format(', '.join(section_tags)))
-                if not [tag for tag in tags if tag in section_tags]:
-                    specific_dotfile.write(line)
-                    comment_out = True
-                    continue
-                comment_out = False
-            if '{0}{0}not'.format(cseq) in line:
-                section_tags = line.split()
-                section_tags = section_tags[1:]
-                if verbose:
-                    print('Found section not for {}'.format(', '.join(section_tags)))
-                if [tag for tag in tags if tag in section_tags]:
-                    specific_dotfile.write(line)
-                    comment_out = True
-                    continue
-                comment_out = False
-
-            if '{0}{0}end'.format(cseq) in line:
-                comment_out = False
-
-            if comment_out:
-                specific_dotfile.write(cseq + line)
-            else:
-                specific_dotfile.write(line)
-
-def specialize_directory(directory_path, tags):
-    """Recursively specializes a directory of dotfiles from the repository.
-
-    Args:
-        directory_path: The relative path to the directory to specialize.
-        tags:           The tags for this host.
-    """
-    for entry in listdir(repo_path(directory_path)):
-        if entry == '.git':
-            continue
-        full_path = directory_path + '/' + entry
-        if isdir(repo_path(full_path)):
-            specialize_directory(full_path, tags)
-        else:
-            specialize(full_path, tags)
-
-def stage_path(dotfile_name):
-    """Returns the absolute path to a named dotfile on stage.
-
-    Args:
-        dotfile_name: The name of the dotfile whose path should by synthesized.
-
-    Returns:
-        The absolute stage path to the dotfile.
-    """
-    return dotfile_stage_path + '/' + dotfile_name
-
-def update_symlinks():
-    """Creates missing symlinks to all dotfiles on stage.
-
-    Also automagically creates missing folders in $HOME.
-    """
-    for entry in listdir(dotfile_stage_path):
-        if isdir(stage_path(entry)):
-            link_directory(entry)
-        else:
-            link(entry)
-
-if __name__ == "__main__":
     # Check and parse arguments
+    parser = ArgumentParser(description='Generalize / specialize dotfiles',
+                            epilog="""Required files and paths:
+    General dotfiles are read from / written to {}. You can set the environment variable $DOTMGR_REPO to change this.
+    The default stage directory is {}. This can be overridden with $DOTMGR_STAGE.
+    Tags are read from $HOME/{}, which can be changed by setting $DOTMGR_TAG_CONF.
+    """.format(DEFAULT_DOTFILE_REPOSITORY_PATH, DEFAULT_DOTFILE_STAGE_PATH, DEFAULT_DOTFILE_TAG_CONFIG_PATH))
+    parser.add_argument('-C', '--clean', action='store_true',
+                        help='Remove all symlinks and clear the stage')
+    parser.add_argument('-G', '--generalize-all', action='store_true',
+                        help='Generalize all dotfiles currently on stage')
+    parser.add_argument('-L', '--link-all', action='store_true',
+                        help='Update all symlinks (use in conjunction with -S)')
+    parser.add_argument('-S', '--specialize-all', action='store_true',
+                        help='Specialize all dotfiles in the repository')
+    parser.add_argument('-a', '--add', metavar='FILE',
+                        help='Add a dotfile from the home directory')
+    parser.add_argument('-b', '--bootstrap', action='store_true',
+                        help='Read the tag configuration from the repository instead of $HOME')
+    parser.add_argument('-g', '--generalize', metavar='FILE',
+                        help='Generalize a dotfile from the stage')
+    parser.add_argument('-l', '--link', action='store_true',
+                        help='Place a symlink to a file on stage (use in conjunction with -s)')
+    parser.add_argument('-r', '--remove', metavar='FILE',
+                        help='Remove a dotfile from the stage and delete its symlink')
+    parser.add_argument('-s', '--specialize', metavar='FILE',
+                        help='Specialize a dotfile from the repository')
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='Enable verbose output (useful for debugging)')
     args = parser.parse_args()
+
+    # Enable verbose mode if requested
+    verbose = False
+    if args.verbose:
+        verbose = True
 
     # Prepare dotfile repository path
     dotfile_repository_path = expanduser(DEFAULT_DOTFILE_REPOSITORY_PATH)
@@ -344,6 +364,8 @@ if __name__ == "__main__":
     if not exists(dotfile_repository_path):
         print('Error: dotfile repository {} does not exist'.format(dotfile_repository_path))
         exit()
+    if verbose:
+        print('Using dotfile repository at {}'.format(dotfile_repository_path))
 
     # Prepare dotfile stage path
     dotfile_stage_path = expanduser(DEFAULT_DOTFILE_STAGE_PATH)
@@ -351,6 +373,8 @@ if __name__ == "__main__":
         dotfile_stage_path = environ['DOTMGR_STAGE']
     if not exists(dotfile_stage_path):
         makedirs(dotfile_stage_path)
+    if verbose:
+        print('Using stage at {}'.format(dotfile_stage_path))
 
     # Prepare tag config path and check if it exists
     if args.bootstrap:
@@ -366,66 +390,69 @@ if __name__ == "__main__":
               '       or set $DOTMGR_TAG_CONF to override the default path.'\
               .format(dotfile_tag_config_path))
         exit()
+    if verbose:
+        print('Using dotfile tags config at {}'.format(dotfile_tag_config_path))
 
-    # Enable verbose mode if requested
-    if args.verbose:
-        verbose = True
+    manager = Manager(dotfile_repository_path, dotfile_stage_path, dotfile_tag_config_path, verbose)
 
     # Execute selected action
     if args.clean:
         print('Cleaning')
         for entry in listdir(dotfile_stage_path):
             if isdir(dotfile_stage_path + '/' + entry):
-                cleanup_directory(entry)
+                manager.cleanup_directory(entry)
             else:
-                cleanup(entry)
+                manager.cleanup(entry)
         rmtree(dotfile_stage_path)
         exit()
     if args.generalize_all:
         print('Generalizing all dotfiles')
-        tags = get_tags()
+        tags = manager.get_tags()
         for entry in listdir(dotfile_stage_path):
             if isdir(dotfile_stage_path + '/' + entry):
-                generalize_directory(entry, tags)
+                manager.generalize_directory(entry, tags)
             else:
-                generalize(entry, tags)
+                manager.generalize(entry, tags)
         exit()
     if args.specialize_all:
         print('Specializing all dotfiles')
-        tags = get_tags()
+        tags = manager.get_tags()
         for entry in listdir(dotfile_repository_path):
             if isdir(dotfile_repository_path + '/' + entry):
-                if repo_path(entry) == dotfile_stage_path \
+                if manager.repo_path(entry) == dotfile_stage_path \
                 or entry == '.git':
                     continue
-                specialize_directory(entry, tags)
+                manager.specialize_directory(entry, tags)
             else:
-                if repo_path(entry) == dotfile_tag_config_path:
+                if manager.repo_path(entry) == dotfile_tag_config_path:
                     continue
-                specialize(entry, tags)
+                manager.specialize(entry, tags)
         if args.link_all:
-            update_symlinks()
+            manager.update_symlinks()
         exit()
     if args.add:
         dotfile_name = args.add
         home = home_path(dotfile_name)
         if islink(home):
             exit()
-        stage = stage_path(dotfile_name)
+        stage = manager.stage_path(dotfile_name)
         print('Moving dotfile   {} => {}'.format(home, stage))
         move(home, stage)
-        link(dotfile_name)
-        generalize(dotfile_name, get_tags())
+        manager.link(dotfile_name)
+        manager.generalize(dotfile_name, manager.get_tags())
         exit()
     if args.generalize:
-        generalize(args.generalize, get_tags())
+        manager.generalize(args.generalize, manager.get_tags())
         exit()
     if args.remove:
-        cleanup(args.remove)
+        manager.cleanup(args.remove)
         exit()
     if args.specialize:
-        specialize(repo_path(args.specialize), get_tags())
+        manager.specialize(manager.repo_path(args.specialize), manager.get_tags())
         if args.link:
-            link(args.specialize)
+            manager.link(args.specialize)
         exit()
     parser.print_help()
+
+if __name__ == "__main__":
+    main()
