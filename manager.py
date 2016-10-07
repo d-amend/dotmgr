@@ -155,8 +155,6 @@ class Manager(object):
             directory_path: The relative path to the directory to generalize.
         """
         for entry in listdir(self.stage_path(directory_path)):
-            if entry == '.git':
-                continue
             full_path = directory_path + '/' + entry
             if isdir(self.stage_path(full_path)):
                 self.generalize_directory(full_path)
