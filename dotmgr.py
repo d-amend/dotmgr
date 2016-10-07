@@ -16,18 +16,18 @@ DEFAULT_DOTFILE_STAGE_PATH = '~/.local/share/dotmgr/stage'
 DEFAULT_DOTFILE_TAG_CONFIG_PATH = '.config/dotmgr/tags.conf'
 
 
-def main():
-    """Program entry point.
-
-    Where things start to happen...
+def prepare_argument_parser():
+    """Creates and configures the argument parser for the CLI.
     """
-    # Check and parse arguments
+
     parser = ArgumentParser(description='Generalize / specialize dotfiles',
                             epilog="""Required files and paths:
     General dotfiles are read from / written to {}. You can set the environment variable $DOTMGR_REPO to change this.
     The default stage directory is {}. This can be overridden with $DOTMGR_STAGE.
     Tags are read from $HOME/{}, which can be changed by setting $DOTMGR_TAG_CONF.
-    """.format(DEFAULT_DOTFILE_REPOSITORY_PATH, DEFAULT_DOTFILE_STAGE_PATH, DEFAULT_DOTFILE_TAG_CONFIG_PATH))
+    """.format(DEFAULT_DOTFILE_REPOSITORY_PATH,
+               DEFAULT_DOTFILE_STAGE_PATH,
+               DEFAULT_DOTFILE_TAG_CONFIG_PATH))
     parser.add_argument('-C', '--clean', action='store_true',
                         help='Remove all symlinks and clear the stage')
     parser.add_argument('-G', '--generalize-all', action='store_true',
@@ -50,34 +50,77 @@ def main():
                         help='Specialize a dotfile from the repository')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Enable verbose output (useful for debugging)')
-    args = parser.parse_args()
+    return parser
 
-    # Enable verbose mode if requested
-    verbose = False
-    if args.verbose:
-        verbose = True
+def prepare_dotfile_repository_path(verbose):
+    """Synthesizes the path to the dotfile repository.
 
-    # Prepare dotfile repository path
+    If DOTMGR_REPO is defined, it is read from the environment and returned.
+    Otherwise the DEFAULT_DOTFILE_REPOSITORY_PATH is used.
+    If the chosen path does not point to a directory, the program exits with an error message.
+
+    Args:
+        verbose: If set to `True`, this function generates debug messages.
+
+    Returns:
+        The (absolute) path to the dotfile repository.
+    """
+
     dotfile_repository_path = expanduser(DEFAULT_DOTFILE_REPOSITORY_PATH)
     if 'DOTMGR_REPO' in environ:
         dotfile_repository_path = environ['DOTMGR_REPO']
+
     if not exists(dotfile_repository_path):
         print('Error: dotfile repository {} does not exist'.format(dotfile_repository_path))
         exit()
     if verbose:
         print('Using dotfile repository at {}'.format(dotfile_repository_path))
+    return dotfile_repository_path
 
-    # Prepare dotfile stage path
+def prepare_dotfile_stage_path(verbose):
+    """Synthesizes the path to the dotfile stage directory.
+
+    If DOTMGR_STAGE is defined, it is read from the environment and returned.
+    Otherwise the DEFAULT_DOTFILE_STAGE_PATH is used.
+    If the chosen directory does not exist, it is created automatically.
+
+    Args:
+        verbose: If set to `True`, this function generates debug messages.
+
+    Returns:
+        The (absolute) path to the dotfile stage directory.
+    """
+
     dotfile_stage_path = expanduser(DEFAULT_DOTFILE_STAGE_PATH)
     if 'DOTMGR_STAGE' in environ:
         dotfile_stage_path = environ['DOTMGR_STAGE']
-    if not exists(dotfile_stage_path):
-        makedirs(dotfile_stage_path)
-    if verbose:
-        print('Using stage at {}'.format(dotfile_stage_path))
 
-    # Prepare tag config path and check if it exists
-    if args.bootstrap:
+    if not exists(dotfile_stage_path):
+        if verbose:
+            print('Preparing stage at {}'.format(dotfile_stage_path))
+        makedirs(dotfile_stage_path)
+    elif verbose:
+        print('Using stage at {}'.format(dotfile_stage_path))
+    return dotfile_stage_path
+
+def prepare_tag_config_path(bootstrap, dotfile_repository_path, verbose):
+    """Synthesizes the path to the dotfile stage directory.
+
+    If DOTMGR_TAG_CONF is defined, it is read from the environment and returned.
+    Otherwise the DEFAULT_DOTFILE_STAGE_PATH is appended to the path of the user's home directory.
+    If the chosen path does not point to a file, the program exits with an error message.
+
+    Args:
+        bootstrap: If `True`, a path to the config within in the dotfile repository is returned.
+        dotfile_repository_path: The path to the dotfile repository (may be `None` if `boostrap` is
+                                 not set).
+        verbose: If set to `True`, this function generates debug messages.
+
+    Returns:
+        The (absolute) path to the tag configuration file.
+    """
+
+    if bootstrap:
         dotfile_tag_config_path = dotfile_repository_path + '/' + DEFAULT_DOTFILE_TAG_CONFIG_PATH
     else:
         dotfile_tag_config_path = expanduser('~/' + DEFAULT_DOTFILE_TAG_CONFIG_PATH)
@@ -92,7 +135,29 @@ def main():
         exit()
     if verbose:
         print('Using dotfile tags config at {}'.format(dotfile_tag_config_path))
+    return dotfile_tag_config_path
 
+def main():
+    """Program entry point.
+
+    Where things start to happen...
+    """
+
+    # Check and parse arguments
+    parser = prepare_argument_parser()
+    args = parser.parse_args()
+
+    # Enable verbose mode if requested
+    verbose = False
+    if args.verbose:
+        verbose = True
+
+    # Prepare paths and dotfile manager
+    dotfile_repository_path = prepare_dotfile_repository_path(verbose)
+    dotfile_stage_path = prepare_dotfile_stage_path(verbose)
+    dotfile_tag_config_path = prepare_tag_config_path(args.bootstrap,
+                                                      dotfile_repository_path,
+                                                      verbose)
     manager = Manager(dotfile_repository_path, dotfile_stage_path, dotfile_tag_config_path, verbose)
 
     # Execute selected action

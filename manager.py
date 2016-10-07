@@ -18,10 +18,10 @@ class Manager(object):
         verbose: If set to `True`, debug messages are generated.
     """
 
-    def __init__(self, dotfile_repository_path, dotfile_stage_path, dotfile_tag_config_path, verbose):
-        self.dotfile_repository_path = dotfile_repository_path
-        self.dotfile_stage_path = dotfile_stage_path
-        self.dotfile_tag_config_path = dotfile_tag_config_path
+    def __init__(self, repository_path, stage_path, tag_config_path, verbose):
+        self.dotfile_repository_path = repository_path
+        self.dotfile_stage_path = stage_path
+        self.dotfile_tag_config_path = tag_config_path
         self.verbose = verbose
         self.tags = self.get_tags()
 
