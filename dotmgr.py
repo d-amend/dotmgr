@@ -1,18 +1,22 @@
 #!/usr/bin/python3
+"""Dotfile manager
+
+A small script that can help you maintain your dotfiles across several devices.
+"""
+
 from argparse import ArgumentParser
-from os import environ, listdir, makedirs, makedirs, remove, symlink
+from os import environ, listdir, makedirs, remove, symlink
 from os.path import dirname, exists, expanduser, isdir, isfile, islink
 from shutil import move, rmtree
 from socket import gethostname
-from sys import exit
 
 import re
 
-default_dotfile_repository_path = '~/repositories/dotfiles'
-default_dotfile_stage_path      = '~/.local/share/dotmgr/stage'
-default_dotfile_tag_config_path = '.config/dotmgr/tags.conf'
+DEFAULT_DOTFILE_REPOSITORY_PATH = '~/repositories/dotfiles'
+DEFAULT_DOTFILE_STAGE_PATH = '~/.local/share/dotmgr/stage'
+DEFAULT_DOTFILE_TAG_CONFIG_PATH = '.config/dotmgr/tags.conf'
 dotfile_repository_path = None
-dotfile_stage_path      = None
+dotfile_stage_path = None
 dotfile_tag_config_path = None
 verbose = False
 
@@ -21,29 +25,29 @@ parser = ArgumentParser(description='Generalize / specialize dotfiles',
 General dotfiles are read from / written to {}. You can set the environment variable $DOTMGR_REPO to change this.
 The default stage directory is {}. This can be overridden with $DOTMGR_STAGE.
 Tags are read from $HOME/{}, which can be changed by setting $DOTMGR_TAG_CONF.
-""".format(default_dotfile_repository_path, default_dotfile_stage_path, default_dotfile_tag_config_path))
+""".format(DEFAULT_DOTFILE_REPOSITORY_PATH, DEFAULT_DOTFILE_STAGE_PATH, DEFAULT_DOTFILE_TAG_CONFIG_PATH))
 parser.add_argument('-C', '--clean', action='store_true',
-                    help='Remove all symlinks and clear the stage');
+                    help='Remove all symlinks and clear the stage')
 parser.add_argument('-G', '--generalize-all', action='store_true',
-                    help='Generalize all dotfiles currently on stage');
+                    help='Generalize all dotfiles currently on stage')
 parser.add_argument('-L', '--link-all', action='store_true',
-                    help='Update all symlinks (use in conjunction with -S)');
+                    help='Update all symlinks (use in conjunction with -S)')
 parser.add_argument('-S', '--specialize-all', action='store_true',
-                    help='Specialize all dotfiles in the repository');
+                    help='Specialize all dotfiles in the repository')
 parser.add_argument('-a', '--add', metavar='FILE',
-                    help='Add a dotfile from the home directory');
+                    help='Add a dotfile from the home directory')
 parser.add_argument('-b', '--bootstrap', action='store_true',
-                    help='Read the tag configuration from the repository instead of $HOME');
+                    help='Read the tag configuration from the repository instead of $HOME')
 parser.add_argument('-g', '--generalize', metavar='FILE',
-                    help='Generalize a dotfile from the stage');
+                    help='Generalize a dotfile from the stage')
 parser.add_argument('-l', '--link', action='store_true',
-                    help='Place a symlink to a file on stage (use in conjunction with -s)');
+                    help='Place a symlink to a file on stage (use in conjunction with -s)')
 parser.add_argument('-r', '--remove', metavar='FILE',
-                    help='Remove a dotfile from the stage and delete its symlink');
+                    help='Remove a dotfile from the stage and delete its symlink')
 parser.add_argument('-s', '--specialize', metavar='FILE',
-                    help='Specialize a dotfile from the repository');
+                    help='Specialize a dotfile from the repository')
 parser.add_argument('-v', '--verbose', action='store_true',
-                    help='Enable verbose output (useful for debugging)');
+                    help='Enable verbose output (useful for debugging)')
 
 def cleanup(dotfile_path):
     """Removes a dotfile from the stage and the symlink from $HOME.
@@ -206,14 +210,14 @@ def link(dotfile_path):
     Args:
         dotfile_path: The relative path to the dotfile to link.
     """
-    link = home_path(dotfile_path)
-    if exists(link):
+    link_path = home_path(dotfile_path)
+    if exists(link_path):
         return
 
-    dest = stage_path(dotfile_path)
-    print("Creating symlink {} -> {}".format(link, dest))
-    makedirs(dirname(link), exist_ok=True)
-    symlink(dest, link)
+    dest_path = stage_path(dotfile_path)
+    print("Creating symlink {} -> {}".format(link_path, dest_path))
+    makedirs(dirname(link_path), exist_ok=True)
+    symlink(dest_path, link_path)
 
 def link_directory(directory_path):
     """Recursively links a directory of dotfiles from the stage to $HOME.
@@ -334,7 +338,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Prepare dotfile repository path
-    dotfile_repository_path = expanduser(default_dotfile_repository_path)
+    dotfile_repository_path = expanduser(DEFAULT_DOTFILE_REPOSITORY_PATH)
     if 'DOTMGR_REPO' in environ:
         dotfile_repository_path = environ['DOTMGR_REPO']
     if not exists(dotfile_repository_path):
@@ -342,7 +346,7 @@ if __name__ == "__main__":
         exit()
 
     # Prepare dotfile stage path
-    dotfile_stage_path = expanduser(default_dotfile_stage_path)
+    dotfile_stage_path = expanduser(DEFAULT_DOTFILE_STAGE_PATH)
     if 'DOTMGR_STAGE' in environ:
         dotfile_stage_path = environ['DOTMGR_STAGE']
     if not exists(dotfile_stage_path):
@@ -350,9 +354,9 @@ if __name__ == "__main__":
 
     # Prepare tag config path and check if it exists
     if args.bootstrap:
-        dotfile_tag_config_path = dotfile_repository_path + '/' + default_dotfile_tag_config_path
+        dotfile_tag_config_path = dotfile_repository_path + '/' + DEFAULT_DOTFILE_TAG_CONFIG_PATH
     else:
-        dotfile_tag_config_path = expanduser('~/' + default_dotfile_tag_config_path)
+        dotfile_tag_config_path = expanduser('~/' + DEFAULT_DOTFILE_TAG_CONFIG_PATH)
         if 'DOTMGR_TAG_CONF' in environ:
             dotfile_tag_config_path = environ['DOTMGR_TAG_CONF']
 
@@ -378,7 +382,7 @@ if __name__ == "__main__":
         rmtree(dotfile_stage_path)
         exit()
     if args.generalize_all:
-        print('Generalizing all dotfiles');
+        print('Generalizing all dotfiles')
         tags = get_tags()
         for entry in listdir(dotfile_stage_path):
             if isdir(dotfile_stage_path + '/' + entry):
@@ -387,7 +391,7 @@ if __name__ == "__main__":
                 generalize(entry, tags)
         exit()
     if args.specialize_all:
-        print('Specializing all dotfiles');
+        print('Specializing all dotfiles')
         tags = get_tags()
         for entry in listdir(dotfile_repository_path):
             if isdir(dotfile_repository_path + '/' + entry):
@@ -404,10 +408,10 @@ if __name__ == "__main__":
         exit()
     if args.add:
         dotfile_name = args.add
-        home = home_path(dotfile_name);
+        home = home_path(dotfile_name)
         if islink(home):
             exit()
-        stage = stage_path(dotfile_name);
+        stage = stage_path(dotfile_name)
         print('Moving dotfile   {} => {}'.format(home, stage))
         move(home, stage)
         link(dotfile_name)
