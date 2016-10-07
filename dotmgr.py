@@ -107,26 +107,24 @@ def main():
         exit()
     if args.generalize_all:
         print('Generalizing all dotfiles')
-        tags = manager.get_tags()
         for entry in listdir(dotfile_stage_path):
             if isdir(dotfile_stage_path + '/' + entry):
-                manager.generalize_directory(entry, tags)
+                manager.generalize_directory(entry)
             else:
-                manager.generalize(entry, tags)
+                manager.generalize(entry)
         exit()
     if args.specialize_all:
         print('Specializing all dotfiles')
-        tags = manager.get_tags()
         for entry in listdir(dotfile_repository_path):
             if isdir(dotfile_repository_path + '/' + entry):
                 if manager.repo_path(entry) == dotfile_stage_path \
                 or entry == '.git':
                     continue
-                manager.specialize_directory(entry, tags)
+                manager.specialize_directory(entry)
             else:
                 if manager.repo_path(entry) == dotfile_tag_config_path:
                     continue
-                manager.specialize(entry, tags)
+                manager.specialize(entry)
         if args.link_all:
             manager.update_symlinks()
         exit()
@@ -139,16 +137,16 @@ def main():
         print('Moving dotfile   {} => {}'.format(home, stage))
         move(home, stage)
         manager.link(dotfile_name)
-        manager.generalize(dotfile_name, manager.get_tags())
+        manager.generalize(dotfile_name)
         exit()
     if args.generalize:
-        manager.generalize(args.generalize, manager.get_tags())
+        manager.generalize(args.generalize)
         exit()
     if args.remove:
         manager.cleanup(args.remove)
         exit()
     if args.specialize:
-        manager.specialize(manager.repo_path(args.specialize), manager.get_tags())
+        manager.specialize(manager.repo_path(args.specialize))
         if args.link:
             manager.link(args.specialize)
         exit()

@@ -23,6 +23,7 @@ class Manager(object):
         self.dotfile_stage_path = dotfile_stage_path
         self.dotfile_tag_config_path = dotfile_tag_config_path
         self.verbose = verbose
+        self.tags = self.get_tags()
 
     def cleanup(self, dotfile_path):
         """Removes a dotfile from the stage and the symlink from $HOME.
@@ -53,7 +54,7 @@ class Manager(object):
             else:
                 self.cleanup(full_path)
 
-    def generalize(self, dotfile_path, tags):
+    def generalize(self, dotfile_path):
         """Generalizes a dotfile from the stage.
 
         Identifies and un-comments blocks deactivated for this host.
@@ -61,7 +62,6 @@ class Manager(object):
 
         Args:
             dotfile_path: The relative path to the dotfile to generalize.
-            tags:         The tags for this host.
         """
         print('Generalizing ' + dotfile_path)
         specific_content = None
@@ -86,7 +86,7 @@ class Manager(object):
                     section_tags = section_tags[1:]
                     if self.verbose:
                         print('Found section only for {}'.format(', '.join(section_tags)))
-                    if not [tag for tag in tags if tag in section_tags]:
+                    if not [tag for tag in self.tags if tag in section_tags]:
                         generic_dotfile.write(line)
                         strip = True
                         continue
@@ -96,7 +96,7 @@ class Manager(object):
                     section_tags = section_tags[1:]
                     if self.verbose:
                         print('Found section not for {}'.format(', '.join(section_tags)))
-                    if [tag for tag in tags if tag in section_tags]:
+                    if [tag for tag in self.tags if tag in section_tags]:
                         generic_dotfile.write(line)
                         strip = True
                         continue
@@ -111,21 +111,20 @@ class Manager(object):
                 else:
                     generic_dotfile.write(line)
 
-    def generalize_directory(self, directory_path, tags):
+    def generalize_directory(self, directory_path):
         """Recursively generalizes a directory of dotfiles on stage.
 
         Args:
             directory_path: The relative path to the directory to generalize.
-            tags:           The tags for this host.
         """
         for entry in listdir(self.stage_path(directory_path)):
             if entry == '.git':
                 continue
             full_path = directory_path + '/' + entry
             if isdir(self.stage_path(full_path)):
-                self.generalize_directory(full_path, tags)
+                self.generalize_directory(full_path)
             else:
-                self.generalize(full_path, tags)
+                self.generalize(full_path)
 
     def get_tags(self):
         """Parses the dotmgr config file and extracts the tags for the current host.
@@ -207,7 +206,7 @@ class Manager(object):
         """
         return self.dotfile_repository_path + '/' + dotfile_name
 
-    def specialize(self, dotfile_path, tags):
+    def specialize(self, dotfile_path):
         """Specializes a dotfile from the repository.
 
         Identifies and comments out blocks not valid for this host.
@@ -215,7 +214,6 @@ class Manager(object):
 
         Args:
             dotfile_path: The relative path to the dotfile to specialize.
-            tags:         The tags for this host.
         """
         print('Specializing ' + dotfile_path)
         generic_content = None
@@ -235,7 +233,7 @@ class Manager(object):
                     section_tags = section_tags[1:]
                     if self.verbose:
                         print('Found section only for {}'.format(', '.join(section_tags)))
-                    if not [tag for tag in tags if tag in section_tags]:
+                    if not [tag for tag in self.tags if tag in section_tags]:
                         specific_dotfile.write(line)
                         comment_out = True
                         continue
@@ -245,7 +243,7 @@ class Manager(object):
                     section_tags = section_tags[1:]
                     if self.verbose:
                         print('Found section not for {}'.format(', '.join(section_tags)))
-                    if [tag for tag in tags if tag in section_tags]:
+                    if [tag for tag in self.tags if tag in section_tags]:
                         specific_dotfile.write(line)
                         comment_out = True
                         continue
@@ -259,21 +257,20 @@ class Manager(object):
                 else:
                     specific_dotfile.write(line)
 
-    def specialize_directory(self, directory_path, tags):
+    def specialize_directory(self, directory_path):
         """Recursively specializes a directory of dotfiles from the repository.
 
         Args:
             directory_path: The relative path to the directory to specialize.
-            tags:           The tags for this host.
         """
         for entry in listdir(self.repo_path(directory_path)):
             if entry == '.git':
                 continue
             full_path = directory_path + '/' + entry
             if isdir(self.repo_path(full_path)):
-                self.specialize_directory(full_path, tags)
+                self.specialize_directory(full_path)
             else:
-                self.specialize(full_path, tags)
+                self.specialize(full_path)
 
     def stage_path(self, dotfile_name):
         """Returns the absolute path to a named dotfile on stage.
