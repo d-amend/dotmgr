@@ -8,13 +8,14 @@ from argparse import ArgumentParser
 from os import environ, listdir, makedirs, remove, symlink
 from os.path import dirname, exists, expanduser, isdir, isfile, islink
 from shutil import move, rmtree
+from re import findall
 from socket import gethostname
 
-import re
 
 DEFAULT_DOTFILE_REPOSITORY_PATH = '~/repositories/dotfiles'
 DEFAULT_DOTFILE_STAGE_PATH = '~/.local/share/dotmgr/stage'
 DEFAULT_DOTFILE_TAG_CONFIG_PATH = '.config/dotmgr/tags.conf'
+
 
 class Manager(object):
     """An instance of this class can be used to generalize or specialize dotfiles.
@@ -167,7 +168,7 @@ class Manager(object):
         Returns:
             The characters used to start a comment line.
         """
-        matches = re.findall(r'\S+', line)
+        matches = findall(r'\S+', line)
         if not matches:
             print('Could not identify a comment character!')
             exit()
