@@ -3,8 +3,9 @@
 """
 
 from os import listdir, makedirs, remove, symlink
-from os.path import dirname, exists, expanduser, isdir
+from os.path import dirname, exists, expanduser, isdir, islink
 from re import findall
+from shutil import move, rmtree
 from socket import gethostname
 
 
@@ -25,6 +26,20 @@ class Manager(object):
         self.verbose = verbose
         self.tags = self.get_tags()
 
+    def add(self, dotfile_name):
+        """Moves and links a dotfile from the home directory to the stage and generalizes it.
+        """
+        home = home_path(dotfile_name)
+        if islink(home):
+            if self.verbose:
+                print('File {} is a symlink. It seems it is already managed. \\o/'.format(home))
+            exit()
+        stage = self.stage_path(dotfile_name)
+        print('Moving dotfile   {} => {}'.format(home, stage))
+        move(home, stage)
+        self.link(dotfile_name)
+        self.generalize(dotfile_name)
+
     def cleanup(self, dotfile_path):
         """Removes a dotfile from the stage and the symlink from $HOME.
 
@@ -40,6 +55,18 @@ class Manager(object):
             remove(self.stage_path(dotfile_path))
         except FileNotFoundError:
             print('Warning: {} is not on stage'.format(dotfile_path))
+
+    def cleanup_all(self):
+        """Removes all symlinks to staged files as well as the files themselves.
+        """
+        print('Cleaning')
+        for entry in listdir(self.dotfile_stage_path):
+            if isdir(self.dotfile_stage_path + '/' + entry):
+                self.cleanup_directory(entry)
+            else:
+                self.cleanup(entry)
+        rmtree(self.dotfile_stage_path)
+
 
     def cleanup_directory(self, directory_path):
         """Recursively removes dotfiles from the stage and their symlinks from $HOME.
@@ -110,6 +137,16 @@ class Manager(object):
                     generic_dotfile.write(cseq.join(slices[1:]))
                 else:
                     generic_dotfile.write(line)
+
+    def generalize_all(self):
+        """Generalizes all dotfiles on the stage and writes results to the repository.
+        """
+        print('Generalizing all dotfiles')
+        for entry in listdir(self.dotfile_stage_path):
+            if isdir(self.dotfile_stage_path + '/' + entry):
+                self.generalize_directory(entry)
+            else:
+                self.generalize(entry)
 
     def generalize_directory(self, directory_path):
         """Recursively generalizes a directory of dotfiles on stage.
@@ -256,6 +293,29 @@ class Manager(object):
                     specific_dotfile.write(cseq + line)
                 else:
                     specific_dotfile.write(line)
+
+    def specialize_all(self, link):
+        """Specializes all dotfiles in the repositroy and writes results to the stage.
+
+        Args:
+            link: If set to `True`, symlinks pointing to the staged files are also created in th
+                  user's home directory.
+        """
+
+        print('Specializing all dotfiles')
+        for entry in listdir(self.dotfile_repository_path):
+            if isdir(self.dotfile_repository_path + '/' + entry):
+                if self.repo_path(entry) == self.dotfile_stage_path \
+                or entry == '.git':
+                    continue
+                self.specialize_directory(entry)
+            else:
+                if self.repo_path(entry) == self.dotfile_tag_config_path:
+                    continue
+                self.specialize(entry)
+
+        if link:
+            self.update_symlinks()
 
     def specialize_directory(self, directory_path):
         """Recursively specializes a directory of dotfiles from the repository.

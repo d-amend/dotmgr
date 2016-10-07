@@ -5,10 +5,9 @@ A small script that can help you maintain your dotfiles across several devices.
 """
 
 from argparse import ArgumentParser
-from os import environ, listdir, makedirs
-from os.path import exists, expanduser, isdir, isfile, islink
-from shutil import move, rmtree
-from manager import Manager, home_path
+from os import environ, makedirs
+from os.path import exists, expanduser, isfile
+from manager import Manager
 
 
 DEFAULT_DOTFILE_REPOSITORY_PATH = '~/repositories/dotfiles'
@@ -162,47 +161,16 @@ def main():
 
     # Execute selected action
     if args.clean:
-        print('Cleaning')
-        for entry in listdir(dotfile_stage_path):
-            if isdir(dotfile_stage_path + '/' + entry):
-                manager.cleanup_directory(entry)
-            else:
-                manager.cleanup(entry)
-        rmtree(dotfile_stage_path)
+        manager.cleanup_all()
         exit()
     if args.generalize_all:
-        print('Generalizing all dotfiles')
-        for entry in listdir(dotfile_stage_path):
-            if isdir(dotfile_stage_path + '/' + entry):
-                manager.generalize_directory(entry)
-            else:
-                manager.generalize(entry)
+        manager.generalize_all()
         exit()
     if args.specialize_all:
-        print('Specializing all dotfiles')
-        for entry in listdir(dotfile_repository_path):
-            if isdir(dotfile_repository_path + '/' + entry):
-                if manager.repo_path(entry) == dotfile_stage_path \
-                or entry == '.git':
-                    continue
-                manager.specialize_directory(entry)
-            else:
-                if manager.repo_path(entry) == dotfile_tag_config_path:
-                    continue
-                manager.specialize(entry)
-        if args.link_all:
-            manager.update_symlinks()
+        manager.specialize_all(args.link_all)
         exit()
     if args.add:
-        dotfile_name = args.add
-        home = home_path(dotfile_name)
-        if islink(home):
-            exit()
-        stage = manager.stage_path(dotfile_name)
-        print('Moving dotfile   {} => {}'.format(home, stage))
-        move(home, stage)
-        manager.link(dotfile_name)
-        manager.generalize(dotfile_name)
+        manager.add(args.add)
         exit()
     if args.generalize:
         manager.generalize(args.generalize)
