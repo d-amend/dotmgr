@@ -177,26 +177,20 @@ def main():
     # Execute selected action
     if args.clean:
         manager.cleanup_all()
-        exit()
-    if args.generalize_all:
+    elif args.generalize_all:
         manager.generalize_all()
-        exit()
-    if args.specialize_all:
+    elif args.specialize_all:
         manager.specialize_all(args.link_all)
-        exit()
-    if args.add:
+    elif args.add:
         manager.add(args.add)
-        exit()
-    if args.generalize:
+    elif args.generalize:
         manager.generalize(args.generalize)
-        exit()
-    if args.remove:
+    elif args.remove:
         manager.cleanup(args.remove)
-        exit()
-    if args.specialize:
-        manager.specialize(manager.repo_path(args.specialize), args.link)
-        exit()
-    parser.print_help()
+    elif args.specialize:
+        manager.specialize(args.specialize, args.link)
+    else:
+        parser.print_help()
 
 if __name__ == "__main__":
     main()
