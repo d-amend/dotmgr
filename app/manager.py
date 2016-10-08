@@ -232,6 +232,17 @@ class Manager(object):
         makedirs(dirname(link_path), exist_ok=True)
         symlink(dest_path, link_path)
 
+    def link_all(self):
+        """Creates missing symlinks to all dotfiles on stage.
+
+        Also automagically creates missing folders in $HOME.
+        """
+        for entry in listdir(self.dotfile_stage_path):
+            if isdir(self.stage_path(entry)):
+                self.link_directory(entry)
+            else:
+                self.link(entry)
+
     def link_directory(self, directory_path):
         """Recursively links a directory of dotfiles from the stage to $HOME.
 
@@ -328,7 +339,7 @@ class Manager(object):
                 self.specialize(entry)
 
         if link:
-            self.update_symlinks()
+            self.link_all()
 
     def specialize_directory(self, directory_path):
         """Recursively specializes a directory of dotfiles from the repository.
@@ -355,17 +366,6 @@ class Manager(object):
             The absolute stage path to the dotfile.
         """
         return self.dotfile_stage_path + '/' + dotfile_name
-
-    def update_symlinks(self):
-        """Creates missing symlinks to all dotfiles on stage.
-
-        Also automagically creates missing folders in $HOME.
-        """
-        for entry in listdir(self.dotfile_stage_path):
-            if isdir(self.stage_path(entry)):
-                self.link_directory(entry)
-            else:
-                self.link(entry)
 
 def home_path(dotfile_name):
     """Returns the absolute path to a named dotfile in the user's $HOME directory.
