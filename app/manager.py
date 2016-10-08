@@ -39,7 +39,7 @@ class Manager(object):
         self.dotfile_stage_path = stage_path
         self.dotfile_tag_config_path = tag_config_path
         self.verbose = verbose
-        self.tags = self.get_tags()
+        self._tags = self._get_tags()
 
     def add(self, dotfile_name):
         """Moves and links a dotfile from the home directory to the stage and generalizes it.
@@ -128,7 +128,7 @@ class Manager(object):
                     section_tags = section_tags[1:]
                     if self.verbose:
                         print('Found section only for {}'.format(', '.join(section_tags)))
-                    if not [tag for tag in self.tags if tag in section_tags]:
+                    if not [tag for tag in self._tags if tag in section_tags]:
                         generic_dotfile.write(line)
                         strip = True
                         continue
@@ -138,7 +138,7 @@ class Manager(object):
                     section_tags = section_tags[1:]
                     if self.verbose:
                         print('Found section not for {}'.format(', '.join(section_tags)))
-                    if [tag for tag in self.tags if tag in section_tags]:
+                    if [tag for tag in self._tags if tag in section_tags]:
                         generic_dotfile.write(line)
                         strip = True
                         continue
@@ -176,7 +176,7 @@ class Manager(object):
             else:
                 self.generalize(full_path)
 
-    def get_tags(self):
+    def _get_tags(self):
         """Parses the dotmgr config file and extracts the tags for the current host.
 
         Reads the hostname and searches the dotmgr config for a line defining tags for the host.
@@ -283,7 +283,7 @@ class Manager(object):
                     section_tags = section_tags[1:]
                     if self.verbose:
                         print('Found section only for {}'.format(', '.join(section_tags)))
-                    if not [tag for tag in self.tags if tag in section_tags]:
+                    if not [tag for tag in self._tags if tag in section_tags]:
                         specific_dotfile.write(line)
                         comment_out = True
                         continue
@@ -293,7 +293,7 @@ class Manager(object):
                     section_tags = section_tags[1:]
                     if self.verbose:
                         print('Found section not for {}'.format(', '.join(section_tags)))
-                    if [tag for tag in self.tags if tag in section_tags]:
+                    if [tag for tag in self._tags if tag in section_tags]:
                         specific_dotfile.write(line)
                         comment_out = True
                         continue
