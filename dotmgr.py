@@ -33,15 +33,14 @@ DEFAULT_DOTFILE_TAG_CONFIG_PATH = '.config/dotmgr/tags.conf'
 def prepare_argument_parser():
     """Creates and configures the argument parser for the CLI.
     """
-
     parser = ArgumentParser(description='Generalize / specialize dotfiles',
                             epilog="""Required files and paths:
     General dotfiles are read from / written to {}. You can set the environment variable $DOTMGR_REPO to change this.
     The default stage directory is {}. This can be overridden with $DOTMGR_STAGE.
     Tags are read from ~/{}, which can be changed by setting $DOTMGR_TAG_CONF.
-    """.format(DEFAULT_DOTFILE_REPOSITORY_PATH,
-               DEFAULT_DOTFILE_STAGE_PATH,
-               DEFAULT_DOTFILE_TAG_CONFIG_PATH))
+                            """.format(DEFAULT_DOTFILE_REPOSITORY_PATH,
+                                       DEFAULT_DOTFILE_STAGE_PATH,
+                                       DEFAULT_DOTFILE_TAG_CONFIG_PATH))
     parser.add_argument('-C', '--clean', action='store_true',
                         help='remove all symlinks and clear the stage')
     parser.add_argument('-G', '--generalize-all', action='store_true',
@@ -77,7 +76,6 @@ def prepare_dotfile_repository_path(verbose):
     Returns:
         The (absolute) path to the dotfile repository.
     """
-
     dotfile_repository_path = expanduser(DEFAULT_DOTFILE_REPOSITORY_PATH)
     if 'DOTMGR_REPO' in environ:
         dotfile_repository_path = environ['DOTMGR_REPO']
@@ -102,7 +100,6 @@ def prepare_dotfile_stage_path(verbose):
     Returns:
         The (absolute) path to the dotfile stage directory.
     """
-
     dotfile_stage_path = expanduser(DEFAULT_DOTFILE_STAGE_PATH)
     if 'DOTMGR_STAGE' in environ:
         dotfile_stage_path = environ['DOTMGR_STAGE']
@@ -131,7 +128,6 @@ def prepare_tag_config_path(bootstrap, dotfile_repository_path, verbose):
     Returns:
         The (absolute) path to the tag configuration file.
     """
-
     if bootstrap:
         dotfile_tag_config_path = dotfile_repository_path + '/' + DEFAULT_DOTFILE_TAG_CONFIG_PATH
     else:
@@ -145,6 +141,7 @@ def prepare_tag_config_path(bootstrap, dotfile_repository_path, verbose):
               '       or set $DOTMGR_TAG_CONF to override the default path.'\
               .format(dotfile_tag_config_path))
         exit()
+
     if verbose:
         print('Using dotfile tags config at {}'.format(dotfile_tag_config_path))
     return dotfile_tag_config_path
@@ -154,7 +151,6 @@ def main():
 
     Where things start to happen...
     """
-
     # Check and parse arguments
     parser = prepare_argument_parser()
     args = parser.parse_args()
