@@ -267,7 +267,7 @@ class Manager(object):
         """
         return self.dotfile_repository_path + '/' + dotfile_name
 
-    def specialize(self, dotfile_path):
+    def specialize(self, dotfile_path, link):
         """Specializes a dotfile from the repository.
 
         Identifies and comments out blocks not valid for this host.
@@ -275,6 +275,8 @@ class Manager(object):
 
         Args:
             dotfile_path: The relative path to the dotfile to specialize.
+            link: If set to `True`, a symlink pointing to the specialized file is also created in
+                  the user's home directory.
         """
         print('Specializing ' + dotfile_path)
         generic_content = None
@@ -317,12 +319,14 @@ class Manager(object):
                     specific_dotfile.write(cseq + line)
                 else:
                     specific_dotfile.write(line)
+        if link:
+            self.link(dotfile_path)
 
     def specialize_all(self, link):
         """Specializes all dotfiles in the repositroy and writes results to the stage.
 
         Args:
-            link: If set to `True`, symlinks pointing to the staged files are also created in th
+            link: If set to `True`, symlinks pointing to the staged files are also created in the
                   user's home directory.
         """
 
@@ -332,29 +336,31 @@ class Manager(object):
                 if self.repo_path(entry) == self.dotfile_stage_path \
                 or entry == '.git':
                     continue
-                self.specialize_directory(entry)
+                self.specialize_directory(entry, link)
             else:
                 if self.repo_path(entry) == self.dotfile_tag_config_path:
                     continue
-                self.specialize(entry)
+                self.specialize(entry, link)
 
         if link:
             self.link_all()
 
-    def specialize_directory(self, directory_path):
+    def specialize_directory(self, directory_path, link):
         """Recursively specializes a directory of dotfiles from the repository.
 
         Args:
             directory_path: The relative path to the directory to specialize.
+            link: If set to `True`, symlinks pointing to the staged files are also created in the
+                  user's home directory.
         """
         for entry in listdir(self.repo_path(directory_path)):
             if entry == '.git':
                 continue
             full_path = directory_path + '/' + entry
             if isdir(self.repo_path(full_path)):
-                self.specialize_directory(full_path)
+                self.specialize_directory(full_path, link)
             else:
-                self.specialize(full_path)
+                self.specialize(full_path, link)
 
     def stage_path(self, dotfile_name):
         """Returns the absolute path to a named dotfile on stage.

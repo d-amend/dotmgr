@@ -194,9 +194,7 @@ def main():
         manager.cleanup(args.remove)
         exit()
     if args.specialize:
-        manager.specialize(manager.repo_path(args.specialize))
-        if args.link:
-            manager.link(args.specialize)
+        manager.specialize(manager.repo_path(args.specialize), args.link)
         exit()
     parser.print_help()
 
