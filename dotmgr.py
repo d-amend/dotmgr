@@ -46,8 +46,6 @@ def prepare_argument_parser():
                         help='Remove all symlinks and clear the stage')
     parser.add_argument('-G', '--generalize-all', action='store_true',
                         help='Generalize all dotfiles currently on stage')
-    parser.add_argument('-L', '--link-all', action='store_true',
-                        help='Update all symlinks (use in conjunction with -S)')
     parser.add_argument('-S', '--specialize-all', action='store_true',
                         help='Specialize all dotfiles in the repository')
     parser.add_argument('-a', '--add', metavar='FILE',
@@ -57,7 +55,7 @@ def prepare_argument_parser():
     parser.add_argument('-g', '--generalize', metavar='FILE',
                         help='Generalize a dotfile from the stage')
     parser.add_argument('-l', '--link', action='store_true',
-                        help='Place a symlink to a file on stage (use in conjunction with -s)')
+                        help='Place symlinks to files on stage (use in conjunction with -S or -s)')
     parser.add_argument('-r', '--remove', metavar='FILE',
                         help='Remove a dotfile from the stage and delete its symlink')
     parser.add_argument('-s', '--specialize', metavar='FILE',
@@ -180,7 +178,7 @@ def main():
     elif args.generalize_all:
         manager.generalize_all()
     elif args.specialize_all:
-        manager.specialize_all(args.link_all)
+        manager.specialize_all(args.link)
     elif args.add:
         manager.add(args.add)
     elif args.generalize:
