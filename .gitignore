@@ -1,2 +1,5 @@
 # cpython cache files
 __pycache__/
+
+# Doxygen output
+doc/
