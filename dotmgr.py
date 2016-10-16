@@ -22,7 +22,7 @@ A small script that can help you maintain your dotfiles across several devices.
 from argparse import ArgumentParser
 from os import environ, makedirs
 from os.path import exists, expanduser, isfile
-from manager import Manager
+from app.manager import Manager
 
 
 DEFAULT_DOTFILE_REPOSITORY_PATH = '~/repositories/dotfiles'
