@@ -3,3 +3,8 @@ __pycache__/
 
 # Doxygen output
 doc/
+
+# setup.py output
+build/
+dist/
+dotmgr.egg-info/
