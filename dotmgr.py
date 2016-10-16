@@ -38,30 +38,30 @@ def prepare_argument_parser():
                             epilog="""Required files and paths:
     General dotfiles are read from / written to {}. You can set the environment variable $DOTMGR_REPO to change this.
     The default stage directory is {}. This can be overridden with $DOTMGR_STAGE.
-    Tags are read from $HOME/{}, which can be changed by setting $DOTMGR_TAG_CONF.
+    Tags are read from ~/{}, which can be changed by setting $DOTMGR_TAG_CONF.
     """.format(DEFAULT_DOTFILE_REPOSITORY_PATH,
                DEFAULT_DOTFILE_STAGE_PATH,
                DEFAULT_DOTFILE_TAG_CONFIG_PATH))
     parser.add_argument('-C', '--clean', action='store_true',
-                        help='Remove all symlinks and clear the stage')
+                        help='remove all symlinks and clear the stage')
     parser.add_argument('-G', '--generalize-all', action='store_true',
-                        help='Generalize all dotfiles currently on stage')
+                        help='generalize all dotfiles currently on stage')
     parser.add_argument('-S', '--specialize-all', action='store_true',
-                        help='Specialize all dotfiles in the repository')
+                        help='specialize all dotfiles in the repository')
     parser.add_argument('-a', '--add', metavar='FILE',
-                        help='Add a dotfile from the home directory')
+                        help='add a dotfile from the home directory')
     parser.add_argument('-b', '--bootstrap', action='store_true',
-                        help='Read the tag configuration from the repository instead of $HOME')
+                        help='read the tag configuration from the repository instead of $HOME')
     parser.add_argument('-g', '--generalize', metavar='FILE',
-                        help='Generalize a dotfile from the stage')
+                        help='generalize a dotfile from the stage')
     parser.add_argument('-l', '--link', action='store_true',
-                        help='Place symlinks to files on stage (use in conjunction with -S or -s)')
+                        help='place symlinks to files on stage (use in conjunction with -S or -s)')
     parser.add_argument('-r', '--remove', metavar='FILE',
-                        help='Remove a dotfile from the stage and delete its symlink')
+                        help='remove a dotfile from the stage and delete its symlink')
     parser.add_argument('-s', '--specialize', metavar='FILE',
-                        help='Specialize a dotfile from the repository')
+                        help='specialize a dotfile from the repository')
     parser.add_argument('-v', '--verbose', action='store_true',
-                        help='Enable verbose output (useful for debugging)')
+                        help='enable verbose output (useful for debugging)')
     return parser
 
 def prepare_dotfile_repository_path(verbose):
