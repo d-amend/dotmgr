@@ -99,7 +99,7 @@ class Manager(object):
             return
 
         makedirs(self.repo_path(dirname(dotfile_path)), exist_ok=True)
-        cseq = self.identify_comment_sequence(specific_content[0])
+        cseq = self._identify_comment_sequence(specific_content[0])
 
         makedirs(self.stage_path(dirname(dotfile_path)), exist_ok=True)
         with open(self.repo_path(dotfile_path), 'w') as generic_dotfile:
@@ -164,7 +164,7 @@ class Manager(object):
         print('Warning: No tags found for this machine!')
         return [""]
 
-    def identify_comment_sequence(self, line):
+    def _identify_comment_sequence(self, line):
         """Parses a line and extracts the comment character sequence.
 
         Args:
@@ -259,7 +259,7 @@ class Manager(object):
         if not generic_content:
             return
 
-        cseq = self.identify_comment_sequence(generic_content[0])
+        cseq = self._identify_comment_sequence(generic_content[0])
 
         makedirs(self.stage_path(dirname(dotfile_path)), exist_ok=True)
         with open(self.stage_path(dotfile_path), 'w') as specific_dotfile:
