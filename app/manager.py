@@ -75,26 +75,8 @@ class Manager(object):
         """Removes all symlinks to staged files as well as the files themselves.
         """
         print('Cleaning')
-        for entry in listdir(self.dotfile_stage_path):
-            if isdir(self.dotfile_stage_path + '/' + entry):
-                self.cleanup_directory(entry)
-            else:
-                self.cleanup(entry)
+        self._perform_on_stage(self.cleanup)
         rmtree(self.dotfile_stage_path)
-
-
-    def cleanup_directory(self, directory_path):
-        """Recursively removes dotfiles from the stage and their symlinks from $HOME.
-
-        Args:
-            directory_path: The relative path to the directory to clean.
-        """
-        for entry in listdir(self.stage_path(directory_path)):
-            full_path = directory_path + '/' + entry
-            if isdir(self.stage_path(full_path)):
-                self.cleanup_directory(full_path)
-            else:
-                self.cleanup(full_path)
 
     def generalize(self, dotfile_path):
         """Generalizes a dotfile from the stage.
@@ -157,24 +139,7 @@ class Manager(object):
         """Generalizes all dotfiles on the stage and writes results to the repository.
         """
         print('Generalizing all dotfiles')
-        for entry in listdir(self.dotfile_stage_path):
-            if isdir(self.dotfile_stage_path + '/' + entry):
-                self.generalize_directory(entry)
-            else:
-                self.generalize(entry)
-
-    def generalize_directory(self, directory_path):
-        """Recursively generalizes a directory of dotfiles on stage.
-
-        Args:
-            directory_path: The relative path to the directory to generalize.
-        """
-        for entry in listdir(self.stage_path(directory_path)):
-            full_path = directory_path + '/' + entry
-            if isdir(self.stage_path(full_path)):
-                self.generalize_directory(full_path)
-            else:
-                self.generalize(full_path)
+        self._perform_on_stage(self.generalize)
 
     def _get_tags(self):
         """Parses the dotmgr config file and extracts the tags for the current host.
@@ -237,24 +202,33 @@ class Manager(object):
 
         Also automagically creates missing folders in $HOME.
         """
+        self._perform_on_stage(self.link)
+
+    def _perform_on_stage(self, action):
+        """Performs the given action on all dotfiles on stage.
+
+        Args:
+            action: The action to perform.
+        """
         for entry in listdir(self.dotfile_stage_path):
             if isdir(self.stage_path(entry)):
-                self.link_directory(entry)
+                self._recurse_stage_directory(entry, action)
             else:
-                self.link(entry)
+                action(entry)
 
-    def link_directory(self, directory_path):
-        """Recursively links a directory of dotfiles from the stage to $HOME.
+    def _recurse_stage_directory(self, directory_path, action):
+        """Performs an action on dotfiles on stage.
 
         Args:
             directory_path: The relative path to the directory to link.
+            action: The action to perform.
         """
         for entry in listdir(self.stage_path(directory_path)):
             full_path = directory_path + '/' + entry
             if isdir(self.stage_path(full_path)):
-                self.link_directory(full_path)
+                self._recurse_stage_directory(full_path, action)
             else:
-                self.link(full_path)
+                action(full_path)
 
     def repo_path(self, dotfile_name):
         """Returns the absolute path to a named dotfile in the repository.
