@@ -310,7 +310,7 @@ class Manager(object):
                 if self.repo_path(entry) == self.dotfile_stage_path \
                 or entry == '.git':
                     continue
-                self.specialize_directory(entry, link)
+                self._specialize_directory(entry, link)
             else:
                 if self.repo_path(entry) == self.dotfile_tag_config_path:
                     continue
@@ -319,7 +319,7 @@ class Manager(object):
         if link:
             self.link_all()
 
-    def specialize_directory(self, directory_path, link):
+    def _specialize_directory(self, directory_path, link):
         """Recursively specializes a directory of dotfiles from the repository.
 
         Args:
@@ -332,7 +332,7 @@ class Manager(object):
                 continue
             full_path = directory_path + '/' + entry
             if isdir(self.repo_path(full_path)):
-                self.specialize_directory(full_path, link)
+                self._specialize_directory(full_path, link)
             else:
                 self.specialize(full_path, link)
 
