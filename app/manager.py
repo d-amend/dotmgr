@@ -18,7 +18,7 @@
 """
 
 from os import listdir, makedirs, remove, symlink
-from os.path import dirname, exists, expanduser, isdir, islink
+from os.path import dirname, exists, expanduser, isdir, islink, join
 from re import findall
 from shutil import move, rmtree
 from socket import gethostname
@@ -224,7 +224,7 @@ class Manager(object):
             action: The action to perform.
         """
         for entry in listdir(self.stage_path(directory_path)):
-            full_path = directory_path + '/' + entry
+            full_path = join(directory_path, entry)
             if isdir(self.stage_path(full_path)):
                 self._recurse_stage_directory(full_path, action)
             else:
@@ -239,7 +239,7 @@ class Manager(object):
         Returns:
             The absolute path to the dotfile in the repository.
         """
-        return self.dotfile_repository_path + '/' + dotfile_name
+        return join(self.dotfile_repository_path, dotfile_name)
 
     def specialize(self, dotfile_path, link):
         """Specializes a dotfile from the repository.
@@ -306,7 +306,7 @@ class Manager(object):
 
         print('Specializing all dotfiles')
         for entry in listdir(self.dotfile_repository_path):
-            if isdir(self.dotfile_repository_path + '/' + entry):
+            if isdir(join(self.dotfile_repository_path, entry)):
                 if self.repo_path(entry) == self.dotfile_stage_path \
                 or entry == '.git':
                     continue
@@ -330,7 +330,7 @@ class Manager(object):
         for entry in listdir(self.repo_path(directory_path)):
             if entry == '.git':
                 continue
-            full_path = directory_path + '/' + entry
+            full_path = join(directory_path, entry)
             if isdir(self.repo_path(full_path)):
                 self._specialize_directory(full_path, link)
             else:
@@ -345,7 +345,7 @@ class Manager(object):
         Returns:
             The absolute stage path to the dotfile.
         """
-        return self.dotfile_stage_path + '/' + dotfile_name
+        return join(self.dotfile_stage_path, dotfile_name)
 
 def home_path(dotfile_name):
     """Returns the absolute path to a named dotfile in the user's $HOME directory.
