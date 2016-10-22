@@ -12,5 +12,6 @@ setup(
     license='GPLv3+',
     version=Git().describe(tags=True, dirty=True, always=True),
     packages=find_packages(),
-    scripts=['dotmgr/dotmgr']
+    scripts=['dotmgr/dotmgr'],
+    install_requires=['gitpython']
 )
