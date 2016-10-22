@@ -8,7 +8,7 @@ setup(
     author_email='haggl@sineband.de',
     url='https://github.com/haggl/dotmgr',
     license='GPLv3+',
-    scripts=['dotmgr.py'],
+    scripts=['dotmgr/dotmgr'],
     packages=find_packages(),
     version='0.1.0'
 )
