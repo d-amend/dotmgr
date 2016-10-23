@@ -58,27 +58,36 @@ class Manager(object):
         self.link(dotfile_name)
         self.generalize(dotfile_name)
 
-    def cleanup(self, dotfile_path):
+    def delete(self, dotfile_path, rm_repo):
         """Removes a dotfile from the stage and the symlink from $HOME.
 
         Args:
             dotfile_path: The relative path to the dotfile to remove.
+            rm_repo:      If `True`, the dotfile is also deleted from the repository.
         """
         print('Removing {} and its symlink'.format(dotfile_path))
         try:
             remove(home_path(dotfile_path))
         except FileNotFoundError:
             print('Warning: Symlink for {} not found'.format(dotfile_path))
+
         try:
             remove(self.stage_path(dotfile_path))
         except FileNotFoundError:
             print('Warning: {} is not on stage'.format(dotfile_path))
 
-    def cleanup_all(self):
+        if rm_repo:
+            print('Removing {} from repository'.format(dotfile_path))
+            try:
+                remove(self.repo_path(dotfile_path))
+            except FileNotFoundError:
+                print('Warning: {} is not in the repository'.format(dotfile_path))
+
+    def delete_all(self):
         """Removes all symlinks to staged files as well as the files themselves.
         """
         print('Cleaning')
-        self._perform_on_stage(self.cleanup)
+        self._perform_on_stage(self.delete)
         rmtree(self.dotfile_stage_path)
 
     def execute_git(self, args):

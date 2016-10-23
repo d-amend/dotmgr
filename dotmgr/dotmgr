@@ -77,6 +77,9 @@ def prepare_argument_parser():
                             'your home directory')
     flags.add_argument('-l', dest='link', action='store_true',
                        help='place symlinks to files on stage (use with -S)')
+    flags.add_argument('-r', dest='rm', action='store_true',
+                       help='also remove the file from the dotfile repository (use with -D '
+                            'and a dotfile path)')
     parser.add_argument('-v', dest='verbose', action='store_true',
                         help='enable verbose output (useful for debugging)')
     return parser
@@ -186,26 +189,41 @@ def main():
                                                       verbose)
     manager = Manager(dotfile_repository_path, dotfile_stage_path, dotfile_tag_config_path, verbose)
 
-    # Execute selected action
-    if args.add:
-        manager.add(args.add)
-    elif args.delete:
+    def delete():
+        """Helper function for the -D action.
+        """
         if args.file:
-            manager.cleanup(args.file)
+            manager.delete(args.file, args.rm)
         else:
-            manager.cleanup_all()
-    elif args.generalize:
+            manager.delete_all()
+
+    def generalize():
+        """Helper function for the -G action.
+        """
         if args.file:
             manager.generalize(args.file)
         else:
             manager.generalize_all()
-    elif args.command:
-        manager.execute_git(args.command)
-    elif args.specialize:
+
+    def specialize():
+        """Helper function for the -S action.
+        """
         if args.file:
             manager.specialize(args.file, args.link)
         else:
             manager.specialize_all(args.link)
+
+    # Execute selected action
+    if args.add:
+        manager.add(args.add)
+    elif args.delete:
+        delete()
+    elif args.generalize:
+        generalize()
+    elif args.specialize:
+        specialize()
+    elif args.command:
+        manager.execute_git(args.command)
     else:
         parser.print_help()
 
