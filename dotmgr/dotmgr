@@ -35,31 +35,34 @@ def prepare_argument_parser():
     """
     parser = ArgumentParser(description='Generalize / specialize dotfiles',
                             epilog="""Required files and paths:
-    General dotfiles are read from / written to {}. You can set the environment variable $DOTMGR_REPO to change this.
+    General dotfiles are read from / written to {}. You can set the environment variable
+    $DOTMGR_REPO to change this.
     The default stage directory is {}. This can be overridden with $DOTMGR_STAGE.
     Tags are read from ~/{}, which can be changed by setting $DOTMGR_TAG_CONF.
                             """.format(DEFAULT_DOTFILE_REPOSITORY_PATH,
                                        DEFAULT_DOTFILE_STAGE_PATH,
-                                       DEFAULT_DOTFILE_TAG_CONFIG_PATH))
-    parser.add_argument('-C', '--clean', action='store_true',
-                        help='remove all symlinks and clear the stage')
-    parser.add_argument('-G', '--generalize-all', action='store_true',
-                        help='generalize all dotfiles currently on stage')
-    parser.add_argument('-S', '--specialize-all', action='store_true',
-                        help='specialize all dotfiles in the repository')
-    parser.add_argument('-a', '--add', metavar='FILE',
-                        help='add a dotfile from the home directory')
-    parser.add_argument('-b', '--bootstrap', action='store_true',
-                        help='read the tag configuration from the repository instead of $HOME')
-    parser.add_argument('-g', '--generalize', metavar='FILE',
-                        help='generalize a dotfile from the stage')
-    parser.add_argument('-l', '--link', action='store_true',
-                        help='place symlinks to files on stage (use in conjunction with -S or -s)')
-    parser.add_argument('-r', '--remove', metavar='FILE',
-                        help='remove a dotfile from the stage and delete its symlink')
-    parser.add_argument('-s', '--specialize', metavar='FILE',
-                        help='specialize a dotfile from the repository')
-    parser.add_argument('-v', '--verbose', action='store_true',
+                                       DEFAULT_DOTFILE_TAG_CONFIG_PATH),
+                            add_help=True)
+    acts = parser.add_argument_group('actions').add_mutually_exclusive_group()
+    acts.add_argument('-A', dest='add', metavar='file',
+                      help='move a dotfile from your home directory to the stage, link it back '
+                           'and create a generalized version in the repository')
+    acts.add_argument('-D', dest='delete', action='store_true',
+                      help='remove a dotfile from the stage and delete its symlink')
+    acts.add_argument('-G', dest='generalize', action='store_true',
+                      help='generalize a dotfile currently on stage')
+    acts.add_argument('-S', dest='specialize', action='store_true',
+                      help='specialize a dotfile from the repository')
+    parser.add_argument('file', nargs='?', default=False,
+                        help='a path to a dotfile - if omitted, the requested action is performed '
+                             'for all dotfiles')
+    flags = parser.add_argument_group('modifiers')
+    flags.add_argument('-b', dest='bootstrap', action='store_true',
+                       help='read the tag configuration directly from the repository instead of '
+                            'your home directory')
+    flags.add_argument('-l', dest='link', action='store_true',
+                       help='place symlinks to files on stage (use in conjunction with -S)')
+    parser.add_argument('-v', dest='verbose', action='store_true',
                         help='enable verbose output (useful for debugging)')
     return parser
 
@@ -169,20 +172,23 @@ def main():
     manager = Manager(dotfile_repository_path, dotfile_stage_path, dotfile_tag_config_path, verbose)
 
     # Execute selected action
-    if args.clean:
-        manager.cleanup_all()
-    elif args.generalize_all:
-        manager.generalize_all()
-    elif args.specialize_all:
-        manager.specialize_all(args.link)
-    elif args.add:
+    if args.add:
         manager.add(args.add)
+    elif args.delete:
+        if args.file:
+            manager.cleanup(args.file)
+        else:
+            manager.cleanup_all()
     elif args.generalize:
-        manager.generalize(args.generalize)
-    elif args.remove:
-        manager.cleanup(args.remove)
+        if args.file:
+            manager.generalize(args.file)
+        else:
+            manager.generalize_all()
     elif args.specialize:
-        manager.specialize(args.specialize, args.link)
+        if args.file:
+            manager.specialize(args.file, args.link)
+        else:
+            manager.specialize_all(args.link)
     else:
         parser.print_help()
 
