@@ -19,10 +19,13 @@
 A small script that can help you maintain your dotfiles across several devices.
 """
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from os import environ, makedirs
 from os.path import exists, expanduser, isfile
+from textwrap import dedent
+
 from dotmgr.manager import Manager
+from pkg_resources import require
 
 
 DEFAULT_DOTFILE_REPOSITORY_PATH = '~/repositories/dotfiles'
@@ -34,14 +37,24 @@ def prepare_argument_parser():
     """Creates and configures the argument parser for the CLI.
     """
     parser = ArgumentParser(description='Generalize / specialize dotfiles',
-                            epilog="""Required files and paths:
-    General dotfiles are read from / written to {}. You can set the environment variable
-    $DOTMGR_REPO to change this.
-    The default stage directory is {}. This can be overridden with $DOTMGR_STAGE.
-    Tags are read from ~/{}, which can be changed by setting $DOTMGR_TAG_CONF.
-                            """.format(DEFAULT_DOTFILE_REPOSITORY_PATH,
-                                       DEFAULT_DOTFILE_STAGE_PATH,
-                                       DEFAULT_DOTFILE_TAG_CONFIG_PATH),
+                            epilog=dedent("""\
+                    default paths and environment variables:
+                    General dotfiles are read from / written to {}.
+                    You can set the environment variable $DOTMGR_REPO to change this.
+
+                    The default stage directory is {}.
+                    This can be overridden with $DOTMGR_STAGE.
+
+                    Tags are read from ~/{}, which can be changed
+                    by setting $DOTMGR_TAG_CONF.
+
+                    version:
+                    This is version {} of dotmgr.
+                            """).format(DEFAULT_DOTFILE_REPOSITORY_PATH,
+                                        DEFAULT_DOTFILE_STAGE_PATH,
+                                        DEFAULT_DOTFILE_TAG_CONFIG_PATH,
+                                        require("dotmgr")[0].version),
+                            formatter_class=RawDescriptionHelpFormatter,
                             add_help=True)
     acts = parser.add_argument_group('actions').add_mutually_exclusive_group()
     acts.add_argument('-A', dest='add', metavar='file',
@@ -61,7 +74,7 @@ def prepare_argument_parser():
                        help='read the tag configuration directly from the repository instead of '
                             'your home directory')
     flags.add_argument('-l', dest='link', action='store_true',
-                       help='place symlinks to files on stage (use in conjunction with -S)')
+                       help='place symlinks to files on stage (use with -S)')
     parser.add_argument('-v', dest='verbose', action='store_true',
                         help='enable verbose output (useful for debugging)')
     return parser
