@@ -26,9 +26,8 @@ from socket import gethostname
 from textwrap import dedent
 
 from dotmgr.manager import Manager
+from dotmgr.repository import Repository
 from pkg_resources import require
-from git.cmd import Git
-from git.exc import GitCommandError
 
 
 DEFAULT_DOTFILE_REPOSITORY_PATH = '~/repositories/dotfiles'
@@ -199,30 +198,13 @@ def main():
                                                       not init,
                                                       verbose)
 
-    def init_repo():
-        """Initializes an empty git repository and creates an initial tag configuration.
-        """
-        print('Initializing empty repository in {}'.format(dotfile_repository_path))
-        if isdir(dotfile_repository_path):
-            print('Error: The target directory already exists.')
-            exit()
-        Git().init(dotfile_repository_path)
-        print('Creating initial tag configuration')
-        makedirs(dirname(dotfile_tag_config_path))
-        with open(dotfile_tag_config_path, 'w') as tag_config:
-            tag_config.write('{0}: {0}'.format(gethostname()))
-
     # If desired, initialize or clone the dotfile repository and exit
+    repository = Repository(dotfile_repository_path, verbose)
     if init:
-        try:
-            if args.init:
-                print('Cloning {} into {}'.format(args.init, dotfile_repository_path))
-                Git().clone(args.init, dotfile_repository_path)
-            else:
-                init_repo()
-        except GitCommandError as error:
-            print(error.stderr)
-        exit()
+        if args.init:
+            repository.clone(args.init)
+        else:
+            repository.initialize(dotfile_tag_config_path)
 
     # Fire up dotfile manager instance
     manager = Manager(dotfile_repository_path, dotfile_stage_path, dotfile_tag_config_path, verbose)
@@ -261,7 +243,7 @@ def main():
     elif args.specialize:
         specialize()
     elif args.command:
-        manager.execute_git(args.command)
+        repository.execute(args.command)
     elif not init:
         parser.print_help()
 
