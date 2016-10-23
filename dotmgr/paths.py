@@ -19,7 +19,7 @@ from os import environ, makedirs
 from os.path import expanduser, isdir, isfile
 
 
-DEFAULT_DOTFILE_REPOSITORY_PATH = '~/repositories/dotfiles'
+DEFAULT_DOTFILE_REPOSITORY_PATH = '~/.local/share/dotmgr/repository'
 DEFAULT_DOTFILE_STAGE_PATH = '~/.local/share/dotmgr/stage'
 DEFAULT_DOTFILE_TAG_CONFIG_PATH = '.config/dotmgr/tags.conf'
 
