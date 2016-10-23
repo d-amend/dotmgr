@@ -93,6 +93,18 @@ class Repository(object):
         except GitCommandError as error:
             print(error.stderr)
 
+    def push(self):
+        """Pushes to upstream.
+        """
+        print('Pushing to upstream')
+        self._git().push()
+
+    def pull(self):
+        """Pulls from upstream.
+        """
+        print('Pulling from upstream')
+        self._git().pull()
+
     def remove(self, dotfile_path):
         """Commits the removal of a dotfile.
 

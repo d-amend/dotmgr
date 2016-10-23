@@ -89,6 +89,9 @@ def prepare_argument_parser():
     vcs_opts.add_argument('-c', dest='commit', action='store_true',
                           help='commit changes to the dotfile repository (use with -A, -G or -D, '
                                'in which case -r is implied and <file> is required)')
+    vcs_opts.add_argument('-s', dest='sync', action='store_true',
+                          help='synchronize repository before / after operation '
+                               '(use with -A, -D, -G or -S; implies -c)')
 
     return parser
 
@@ -126,11 +129,20 @@ def main():
     # Fire up dotfile manager instance
     manager = Manager(repository, dotfile_stage_path, dotfile_tag_config_path, verbose)
 
+    def add():
+        """Helper function for the -A action.
+        """
+        manager.add(args.add, args.commit or args.sync)
+        if args.sync:
+            repository.push()
+
     def delete():
         """Helper function for the -D action.
         """
         if args.file:
-            manager.delete(args.file, args.rm, args.commit)
+            manager.delete(args.file, args.rm, args.commit or args.sync)
+            if args.sync:
+                repository.push()
         else:
             manager.delete_all()
 
@@ -138,13 +150,17 @@ def main():
         """Helper function for the -G action.
         """
         if args.file:
-            manager.generalize(args.file, args.commit)
+            manager.generalize(args.file, args.commit or args.sync)
         else:
-            manager.generalize_all(args.commit)
+            manager.generalize_all(args.commit or args.sync)
+        if args.sync:
+            repository.push()
 
     def specialize():
         """Helper function for the -S action.
         """
+        if args.sync:
+            repository.pull()
         if args.file:
             manager.specialize(args.file, args.link)
         else:
@@ -152,7 +168,7 @@ def main():
 
     # Execute selected action
     if args.add:
-        manager.add(args.add, args.commit)
+        add()
     elif args.delete:
         delete()
     elif args.generalize:
