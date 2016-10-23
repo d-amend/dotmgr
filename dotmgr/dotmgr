@@ -19,7 +19,7 @@
 A small script that can help you maintain your dotfiles across several devices.
 """
 
-from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from argparse import ArgumentParser, RawDescriptionHelpFormatter, REMAINDER
 from os import environ, makedirs
 from os.path import exists, expanduser, isfile
 from textwrap import dedent
@@ -66,6 +66,8 @@ def prepare_argument_parser():
                       help='generalize a dotfile currently on stage')
     acts.add_argument('-S', dest='specialize', action='store_true',
                       help='specialize a dotfile from the repository')
+    acts.add_argument('-V', dest='command', nargs=REMAINDER, metavar='arg',
+                      help='run a git command in the dotfile repository')
     parser.add_argument('file', nargs='?', default=False,
                         help='a path to a dotfile - if omitted, the requested action is performed '
                              'for all dotfiles')
@@ -197,6 +199,8 @@ def main():
             manager.generalize(args.file)
         else:
             manager.generalize_all()
+    elif args.command:
+        manager.execute_git(args.command)
     elif args.specialize:
         if args.file:
             manager.specialize(args.file, args.link)

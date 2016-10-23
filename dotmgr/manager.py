@@ -23,6 +23,8 @@ from re import findall
 from shutil import move, rmtree
 from socket import gethostname
 
+from git import Repo
+
 
 class Manager(object):
     """An instance of this class can be used to manage dotfiles.
@@ -40,6 +42,7 @@ class Manager(object):
         self.dotfile_tag_config_path = tag_config_path
         self.verbose = verbose
         self._tags = self._get_tags()
+        self._repo = Repo(self.dotfile_repository_path)
 
     def add(self, dotfile_name):
         """Moves and links a dotfile from the home directory to the stage and generalizes it.
@@ -77,6 +80,15 @@ class Manager(object):
         print('Cleaning')
         self._perform_on_stage(self.cleanup)
         rmtree(self.dotfile_stage_path)
+
+    def execute_git(self, args):
+        """Executes a git command in the dotfile repository.
+
+        Args:
+            args: Command line arguments for git.
+        """
+        args.insert(0, 'git')
+        print(self._repo.git.execute(args))
 
     def generalize(self, dotfile_path):
         """Generalizes a dotfile from the stage.
