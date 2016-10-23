@@ -26,39 +26,44 @@ class Manager(object):
     """An instance of this class can be used to manage dotfiles.
 
     Attributes:
-        dotfile_repository_path: The absolute path to the dotfile repository.
-        dotfile_stage_path: The absolute path to the dotfile stage directory.
+        dotfile_repository:      The dotfile repository.
+        dotfile_stage_path:      The absolute path to the dotfile stage directory.
         dotfile_tag_config_path: The absolute path to the dotfile tag configuration file.
-        verbose: If set to `True`, debug messages are generated.
+        verbose:                 If set to `True`, debug messages are generated.
     """
 
-    def __init__(self, repository_path, stage_path, tag_config_path, verbose):
-        self.dotfile_repository_path = repository_path
+    def __init__(self, repository, stage_path, tag_config_path, verbose):
+        self.dotfile_repository = repository
         self.dotfile_stage_path = stage_path
         self.dotfile_tag_config_path = tag_config_path
         self.verbose = verbose
         self._tags = self._get_tags()
 
-    def add(self, dotfile_name):
+    def add(self, dotfile_path, commit):
         """Moves and links a dotfile from the home directory to the stage and generalizes it.
+
+        Args:
+            dotfile_path: The relative path to the dotfile to add.
+            commit:       If `True`, the new dotfile is automatically committed to the repository.
         """
-        home = home_path(dotfile_name)
+        home = home_path(dotfile_path)
         if islink(home):
             if self.verbose:
                 print('File {} is a symlink. It seems it is already managed. \\o/'.format(home))
             exit()
-        stage = self.stage_path(dotfile_name)
+        stage = self.stage_path(dotfile_path)
         print('Moving dotfile   {} => {}'.format(home, stage))
         move(home, stage)
-        self.link(dotfile_name)
-        self.generalize(dotfile_name)
+        self.link(dotfile_path)
+        self.generalize(dotfile_path, commit)
 
-    def delete(self, dotfile_path, rm_repo):
+    def delete(self, dotfile_path, rm_repo, commit):
         """Removes a dotfile from the stage and the symlink from $HOME.
 
         Args:
             dotfile_path: The relative path to the dotfile to remove.
             rm_repo:      If `True`, the dotfile is also deleted from the repository.
+            commit:       If `True`, the removal is automatically committed to the repository.
         """
         print('Removing {} and its symlink'.format(dotfile_path))
         try:
@@ -71,21 +76,24 @@ class Manager(object):
         except FileNotFoundError:
             print('Warning: {} is not on stage'.format(dotfile_path))
 
-        if rm_repo:
+        if rm_repo or commit:
             print('Removing {} from repository'.format(dotfile_path))
             try:
                 remove(self.repo_path(dotfile_path))
             except FileNotFoundError:
                 print('Warning: {} is not in the repository'.format(dotfile_path))
 
+        if commit:
+            self.dotfile_repository.remove(dotfile_path)
+
     def delete_all(self):
         """Removes all symlinks to staged files as well as the files themselves.
         """
         print('Cleaning')
-        self._perform_on_stage(self.delete)
+        self._perform_on_stage(self.delete, False, False)
         rmtree(self.dotfile_stage_path)
 
-    def generalize(self, dotfile_path):
+    def generalize(self, dotfile_path, commit):
         """Generalizes a dotfile from the stage.
 
         Identifies and un-comments blocks deactivated for this host.
@@ -93,6 +101,7 @@ class Manager(object):
 
         Args:
             dotfile_path: The relative path to the dotfile to generalize.
+            commit:       If `True`, the changes are automatically committed to the repository.
         """
         print('Generalizing ' + dotfile_path)
         specific_content = None
@@ -142,11 +151,17 @@ class Manager(object):
                 else:
                     generic_dotfile.write(line)
 
-    def generalize_all(self):
+        if commit:
+            self.dotfile_repository.update(dotfile_path)
+
+    def generalize_all(self, commit):
         """Generalizes all dotfiles on the stage and writes results to the repository.
+
+        Args:
+            commit: If `True`, the changes are automatically committed to the repository.
         """
         print('Generalizing all dotfiles')
-        self._perform_on_stage(self.generalize)
+        self._perform_on_stage(self.generalize, commit)
 
     def _get_tags(self):
         """Parses the dotmgr config file and extracts the tags for the current host.
@@ -211,31 +226,33 @@ class Manager(object):
         """
         self._perform_on_stage(self.link)
 
-    def _perform_on_stage(self, action):
+    def _perform_on_stage(self, action, *args):
         """Performs the given action on all dotfiles on stage.
 
         Args:
             action: The action to perform.
+            args:   The arguments to the action.
         """
         for entry in listdir(self.dotfile_stage_path):
             if isdir(self.stage_path(entry)):
-                self._recurse_stage_directory(entry, action)
+                self._recurse_stage_directory(entry, action, *args)
             else:
-                action(entry)
+                action(entry, *args)
 
-    def _recurse_stage_directory(self, directory_path, action):
+    def _recurse_stage_directory(self, directory_path, action, *args):
         """Performs an action on dotfiles on stage.
 
         Args:
             directory_path: The relative path to the directory to link.
             action: The action to perform.
+            args:   The arguments to the action.
         """
         for entry in listdir(self.stage_path(directory_path)):
             full_path = join(directory_path, entry)
             if isdir(self.stage_path(full_path)):
-                self._recurse_stage_directory(full_path, action)
+                self._recurse_stage_directory(full_path, action, *args)
             else:
-                action(full_path)
+                action(full_path, *args)
 
     def repo_path(self, dotfile_name):
         """Returns the absolute path to a named dotfile in the repository.
@@ -246,7 +263,7 @@ class Manager(object):
         Returns:
             The absolute path to the dotfile in the repository.
         """
-        return join(self.dotfile_repository_path, dotfile_name)
+        return join(self.dotfile_repository.path, dotfile_name)
 
     def specialize(self, dotfile_path, link):
         """Specializes a dotfile from the repository.
@@ -312,8 +329,8 @@ class Manager(object):
         """
 
         print('Specializing all dotfiles')
-        for entry in listdir(self.dotfile_repository_path):
-            if isdir(join(self.dotfile_repository_path, entry)):
+        for entry in listdir(self.dotfile_repository.path):
+            if isdir(join(self.dotfile_repository.path, entry)):
                 if self.repo_path(entry) == self.dotfile_stage_path \
                 or entry == '.git':
                     continue

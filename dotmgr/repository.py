@@ -54,6 +54,17 @@ class Repository(object):
         except GitCommandError as error:
             print(error.stderr)
 
+    def execute(self, args):
+        """Executes a git command in the dotfile repository.
+
+        Args:
+            args: Command line arguments for git.
+        """
+        args.insert(0, 'git')
+        if self.verbose:
+            print('Executing `{}`'.format(' '.join(args)))
+        print(self._git().execute(args))
+
     def initialize(self, tag_config_path):
         """Initializes an empty git repository and creates an initial tag configuration.
 
@@ -75,20 +86,35 @@ class Repository(object):
         with open(full_path, 'w') as tag_config:
             tag_config.write('{0}: {0}'.format(gethostname()))
 
+        print('Committing tag configuration')
         try:
-            print('Committing tag configuration')
             self._git().add(tag_config_path)
             self._git().commit(message='Add initial dotmgr tag configuration')
         except GitCommandError as error:
             print(error.stderr)
 
-    def execute(self, args):
-        """Executes a git command in the dotfile repository.
+    def remove(self, dotfile_path):
+        """Commits the removal of a dotfile.
 
         Args:
-            args: Command line arguments for git.
+            dotfile_path: The relative path to the dotfile to remove.
         """
-        args.insert(0, 'git')
-        if self.verbose:
-            print('Executing `{}`'.format(' '.join(args)))
-        print(self._git().execute(args))
+        print('Committing removal of {}'.format(dotfile_path))
+        try:
+            self._git().rm(dotfile_path, cached=True)
+            self._git().commit(message='Remove {}'.format(dotfile_path))
+        except GitCommandError as error:
+            print(error.stderr)
+
+    def update(self, dotfile_path):
+        """Commits changes to a dotfile.
+
+        Args:
+            dotfile_path: The relative path to the dotfile to commit.
+        """
+        print('Committing changes to {}'.format(dotfile_path))
+        try:
+            self._git().add(dotfile_path)
+            self._git().commit(message='Update {}'.format(dotfile_path))
+        except GitCommandError as error:
+            print(error.stderr)
