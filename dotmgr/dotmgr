@@ -100,35 +100,6 @@ def main():
 
     Where things start to happen...
     """
-    # Check and parse arguments
-    parser = prepare_argument_parser()
-    args = parser.parse_args()
-    init = args.init is not None
-
-    # Enable verbose mode if requested
-    verbose = False
-    if args.verbose:
-        verbose = True
-
-    # Prepare paths
-    dotfile_repository_path = prepare_dotfile_repository_path(not init, verbose)
-    dotfile_stage_path = prepare_dotfile_stage_path(verbose)
-    dotfile_tag_config_path = prepare_tag_config_path(args.bootstrap or init,
-                                                      dotfile_repository_path,
-                                                      not init,
-                                                      verbose)
-
-    # If desired, initialize or clone the dotfile repository and exit
-    repository = Repository(dotfile_repository_path, verbose)
-    if init:
-        if args.init:
-            repository.clone(args.init)
-        else:
-            repository.initialize(dotfile_tag_config_path)
-
-    # Fire up dotfile manager instance
-    manager = Manager(repository, dotfile_stage_path, dotfile_tag_config_path, verbose)
-
     def add():
         """Helper function for the -A action.
         """
@@ -165,6 +136,35 @@ def main():
             manager.specialize(args.file, args.link)
         else:
             manager.specialize_all(args.link)
+
+    # Check and parse arguments
+    parser = prepare_argument_parser()
+    args = parser.parse_args()
+    init = args.init is not None
+
+    # Enable verbose mode if requested
+    verbose = False
+    if args.verbose:
+        verbose = True
+
+    # Prepare paths
+    dotfile_repository_path = prepare_dotfile_repository_path(not init, verbose)
+    dotfile_stage_path = prepare_dotfile_stage_path(verbose)
+    dotfile_tag_config_path = prepare_tag_config_path(args.bootstrap or init,
+                                                      dotfile_repository_path,
+                                                      not init,
+                                                      verbose)
+
+    # If desired, initialize or clone the dotfile repository and exit
+    repository = Repository(dotfile_repository_path, verbose)
+    if init:
+        if args.init:
+            repository.clone(args.init)
+        else:
+            repository.initialize(dotfile_tag_config_path)
+
+    # Fire up dotfile manager instance
+    manager = Manager(repository, dotfile_stage_path, dotfile_tag_config_path, verbose)
 
     # Execute selected action
     if args.add:
