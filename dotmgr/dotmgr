@@ -56,7 +56,7 @@ def prepare_argument_parser():
     parser.add_argument('-v', dest='verbose', action='store_true',
                         help='enable verbose output (useful for debugging)')
 
-    acts = parser.add_argument_group('actions').add_mutually_exclusive_group()
+    acts = parser.add_argument_group('actions').add_mutually_exclusive_group(required=True)
     acts.add_argument('-A', dest='add', metavar='file',
                       help='move a dotfile from your home directory to the stage, link it back '
                            'and create a generalized version in the repository')
@@ -177,8 +177,6 @@ def main():
         specialize()
     elif args.command:
         repository.execute(args.command)
-    elif not init:
-        parser.print_help()
 
 if __name__ == "__main__":
     main()
