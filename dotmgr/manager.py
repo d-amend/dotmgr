@@ -103,6 +103,46 @@ class Manager(object):
             dotfile_path: The relative path to the dotfile to generalize.
             commit:       If `True`, the changes are automatically committed to the repository.
         """
+        def filter_and_write(content, dotfile):
+            """Filters the content of a specific dotfile and writes a generic one.
+
+            Args:
+                content: The content of a specific dotfile.
+                dotfile: An open file to write to.
+            """
+            cseq = self._identify_comment_sequence(content[0])
+            strip = False
+            for line in content:
+                if '{0}{0}only'.format(cseq) in line:
+                    section_tags = line.split()
+                    section_tags = section_tags[1:]
+                    if self.verbose:
+                        print('Found section only for {}'.format(', '.join(section_tags)))
+                    if not [tag for tag in self._tags if tag in section_tags]:
+                        dotfile.write(line)
+                        strip = True
+                        continue
+                    strip = False
+                if '{0}{0}not'.format(cseq) in line:
+                    section_tags = line.split()
+                    section_tags = section_tags[1:]
+                    if self.verbose:
+                        print('Found section not for {}'.format(', '.join(section_tags)))
+                    if [tag for tag in self._tags if tag in section_tags]:
+                        dotfile.write(line)
+                        strip = True
+                        continue
+                    strip = False
+
+                if '{0}{0}end'.format(cseq) in line:
+                    strip = False
+
+                if strip:
+                    slices = line.split(cseq)
+                    dotfile.write(cseq.join(slices[1:]))
+                else:
+                    dotfile.write(line)
+
         print('Generalizing ' + dotfile_path)
         specific_content = None
         try:
@@ -115,41 +155,8 @@ class Manager(object):
             return
 
         makedirs(self.repo_path(dirname(dotfile_path)), exist_ok=True)
-        cseq = self._identify_comment_sequence(specific_content[0])
-
-        makedirs(self.stage_path(dirname(dotfile_path)), exist_ok=True)
         with open(self.repo_path(dotfile_path), 'w') as generic_dotfile:
-            strip = False
-            for line in specific_content:
-                if '{0}{0}only'.format(cseq) in line:
-                    section_tags = line.split()
-                    section_tags = section_tags[1:]
-                    if self.verbose:
-                        print('Found section only for {}'.format(', '.join(section_tags)))
-                    if not [tag for tag in self._tags if tag in section_tags]:
-                        generic_dotfile.write(line)
-                        strip = True
-                        continue
-                    strip = False
-                if '{0}{0}not'.format(cseq) in line:
-                    section_tags = line.split()
-                    section_tags = section_tags[1:]
-                    if self.verbose:
-                        print('Found section not for {}'.format(', '.join(section_tags)))
-                    if [tag for tag in self._tags if tag in section_tags]:
-                        generic_dotfile.write(line)
-                        strip = True
-                        continue
-                    strip = False
-
-                if '{0}{0}end'.format(cseq) in line:
-                    strip = False
-
-                if strip:
-                    slices = line.split(cseq)
-                    generic_dotfile.write(cseq.join(slices[1:]))
-                else:
-                    generic_dotfile.write(line)
+            filter_and_write(specific_content, generic_dotfile)
 
         if commit:
             self.dotfile_repository.update(dotfile_path)
@@ -276,26 +283,23 @@ class Manager(object):
             link: If set to `True`, a symlink pointing to the specialized file is also created in
                   the user's home directory.
         """
-        print('Specializing ' + dotfile_path)
-        generic_content = None
-        with open(self.repo_path(dotfile_path)) as generic_dotfile:
-            generic_content = generic_dotfile.readlines()
-        if not generic_content:
-            return
+        def filter_and_write(content, dotfile):
+            """Filters the content of a generic dotfile and writes a specific one.
 
-        cseq = self._identify_comment_sequence(generic_content[0])
-
-        makedirs(self.stage_path(dirname(dotfile_path)), exist_ok=True)
-        with open(self.stage_path(dotfile_path), 'w') as specific_dotfile:
+            Args:
+                content: The content of a generic dotfile.
+                dotfile: An open file to write to.
+            """
+            cseq = self._identify_comment_sequence(content[0])
             comment_out = False
-            for line in generic_content:
+            for line in content:
                 if '{0}{0}only'.format(cseq) in line:
                     section_tags = line.split()
                     section_tags = section_tags[1:]
                     if self.verbose:
                         print('Found section only for {}'.format(', '.join(section_tags)))
                     if not [tag for tag in self._tags if tag in section_tags]:
-                        specific_dotfile.write(line)
+                        dotfile.write(line)
                         comment_out = True
                         continue
                     comment_out = False
@@ -305,7 +309,7 @@ class Manager(object):
                     if self.verbose:
                         print('Found section not for {}'.format(', '.join(section_tags)))
                     if [tag for tag in self._tags if tag in section_tags]:
-                        specific_dotfile.write(line)
+                        dotfile.write(line)
                         comment_out = True
                         continue
                     comment_out = False
@@ -314,9 +318,21 @@ class Manager(object):
                     comment_out = False
 
                 if comment_out:
-                    specific_dotfile.write(cseq + line)
+                    dotfile.write(cseq + line)
                 else:
-                    specific_dotfile.write(line)
+                    dotfile.write(line)
+
+        print('Specializing ' + dotfile_path)
+        generic_content = None
+        with open(self.repo_path(dotfile_path)) as generic_dotfile:
+            generic_content = generic_dotfile.readlines()
+        if not generic_content:
+            return
+
+        makedirs(self.stage_path(dirname(dotfile_path)), exist_ok=True)
+        with open(self.stage_path(dotfile_path), 'w') as specific_dotfile:
+            filter_and_write(generic_content, specific_dotfile)
+
         if link:
             self.link(dotfile_path)
 
