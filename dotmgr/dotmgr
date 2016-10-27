@@ -33,7 +33,16 @@ from pkg_resources import require
 def prepare_argument_parser():
     """Creates and configures the argument parser for the CLI.
     """
-    parser = ArgumentParser(description='Generalize / specialize dotfiles',
+    parser = ArgumentParser(usage=dedent("""\
+                    usage: dotmgr -h
+                           dotmgr [-v]                     -I [repo]
+                           dotmgr [-v] [-b]      [-c | -s] -A <file>
+                           dotmgr [-v] [-b] [-r] [-c | -s] -D [file]
+                           dotmgr [-v] [-b]      [-c | -s] -G [file]
+                           dotmgr [-v] [-b] [-l]      [-s] -S [file]
+                           dotmgr [-v]                     -V <command...>
+                            """),
+                            description='Generalize / specialize dotfiles',
                             epilog=dedent("""\
                     default paths and environment variables:
                     General dotfiles are read from / written to {}.
@@ -72,8 +81,8 @@ def prepare_argument_parser():
                       help='run a git command in the dotfile repository')
 
     parser.add_argument('file', nargs='?', default=False,
-                        help='a path to a dotfile - if omitted, the requested action is performed '
-                             'for all dotfiles')
+                        help='a relative path to a dotfile - if omitted, the requested action is '
+                             'performed for all dotfiles')
 
     flags = parser.add_argument_group('modifiers')
     flags.add_argument('-b', dest='bootstrap', action='store_true',
