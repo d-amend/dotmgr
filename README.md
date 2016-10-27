@@ -94,7 +94,7 @@ vim .config/dotmgr/tags.conf
 
 Specialize and link all dotfiles in bootstrapping mode:
 ```
-dotmgr.py -bSL
+dotmgr -blS
 ```
 
 On consecutive invocations of the script you can omit the `-b` flag, as the tag configuration is now
@@ -105,5 +105,5 @@ information on command line options and arguments.
 Adding the following line to your .vimrc automagically invokes the script each time you save a file
 in your home directory:
 ```
-autocmd BufWritePost ~/.* !dotmgr.py -g %
+autocmd BufWritePost ~/.* !dotmgr -G %
 ```
