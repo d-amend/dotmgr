@@ -55,7 +55,10 @@ class Manager(object):
         print('Moving dotfile   {} => {}'.format(home, stage))
         move(home, stage)
         self.link(dotfile_path)
-        self.generalize(dotfile_path, commit)
+        self.generalize(dotfile_path, False)
+
+        if commit:
+            self.dotfile_repository.add(dotfile_path)
 
     def delete(self, dotfile_path, rm_repo, commit):
         """Removes a dotfile from the stage and the symlink from $HOME.
@@ -150,7 +153,7 @@ class Manager(object):
                 specific_content = specific_dotfile.readlines()
         except FileNotFoundError:
             print('It seems {0} is not handled by dotmgr.\n'
-                  'You can add it with `{1} -a {0}`.'.format(dotfile_path, __file__))
+                  'You can add it with `dotmgr -A {0}`.'.format(dotfile_path))
         if not specific_content:
             return
 

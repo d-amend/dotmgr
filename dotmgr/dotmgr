@@ -34,13 +34,13 @@ def prepare_argument_parser():
     """Creates and configures the argument parser for the CLI.
     """
     parser = ArgumentParser(usage=dedent("""\
-                    usage: dotmgr -h
-                           dotmgr [-v]                     -I [repo]
-                           dotmgr [-v] [-b]      [-c | -s] -A <file>
-                           dotmgr [-v] [-b] [-r] [-c | -s] -D [file]
-                           dotmgr [-v] [-b]      [-c | -s] -G [file] [message]
-                           dotmgr [-v] [-b] [-l]      [-s] -S [file]
-                           dotmgr [-v]                     -V <command...>
+                    dotmgr -h
+                    dotmgr -A [-v] [-b]      [-c | -s] <path>
+                    dotmgr -D [-v] [-b] [-r] [-c | -s] [path]
+                    dotmgr -G [-v] [-b]      [-c | -s] [path] [message]
+                    dotmgr -I [-v]                     [path]
+                    dotmgr -S [-v] [-b] [-l]      [-s] [path]
+                    dotmgr -V <command...>
                             """),
                             description='Generalize / specialize dotfiles',
                             epilog=dedent("""\
@@ -66,21 +66,22 @@ def prepare_argument_parser():
                         help='enable verbose output (useful for debugging)')
 
     acts = parser.add_argument_group('actions').add_mutually_exclusive_group(required=True)
-    acts.add_argument('-A', dest='add', metavar='file',
+    acts.add_argument('-A', dest='add', action='store_true',
                       help='move a dotfile from your home directory to the stage, link it back '
                            'and create a generalized version in the repository')
     acts.add_argument('-D', dest='delete', action='store_true',
                       help='remove a dotfile from the stage and delete its symlink')
     acts.add_argument('-G', dest='generalize', action='store_true',
                       help='generalize a dotfile currently on stage')
-    acts.add_argument('-I', dest='init', nargs='?', const='', metavar='repo',
-                      help='clone a given dotfile repository or initialize an empty one')
+    acts.add_argument('-I', dest='init', action='store_true',
+                      help='clone a dotfile repository from the given <path> or initialize an '
+                           'empty one if <path> is omitted')
     acts.add_argument('-S', dest='specialize', action='store_true',
                       help='specialize a dotfile from the repository')
     acts.add_argument('-V', dest='command', nargs=REMAINDER, metavar='arg',
                       help='run a git command in the dotfile repository')
 
-    parser.add_argument('file', nargs='?', default=False,
+    parser.add_argument('path', nargs='?', default=None,
                         help='a relative path to a dotfile - if omitted, the requested action is '
                              'performed for all dotfiles')
     parser.add_argument('message', nargs='?', default=None,
@@ -99,7 +100,7 @@ def prepare_argument_parser():
     vcs_opts = parser.add_argument_group('VCS options')
     vcs_opts.add_argument('-c', dest='commit', action='store_true',
                           help='commit changes to the dotfile repository (use with -A, -G or -D, '
-                               'in which case -r is implied and <file> is required)')
+                               'in which case -r is implied and <path> is required)')
     vcs_opts.add_argument('-s', dest='sync', action='store_true',
                           help='synchronize repository before / after operation '
                                '(use with -A, -D, -G or -S; implies -c)')
@@ -114,15 +115,18 @@ def main():
     def add():
         """Helper function for the -A action.
         """
-        manager.add(args.add, args.commit or args.sync)
+        if not args.path:
+            parser.print_usage()
+            exit()
+        manager.add(args.path, args.commit or args.sync)
         if args.sync:
             repository.push()
 
     def delete():
         """Helper function for the -D action.
         """
-        if args.file:
-            manager.delete(args.file, args.rm, args.commit or args.sync)
+        if args.path:
+            manager.delete(args.path, args.rm, args.commit or args.sync)
             if args.sync:
                 repository.push()
         else:
@@ -131,8 +135,8 @@ def main():
     def generalize():
         """Helper function for the -G action.
         """
-        if args.file:
-            manager.generalize(args.file, args.commit or args.sync, args.message)
+        if args.path:
+            manager.generalize(args.path, args.commit or args.sync, args.message)
         else:
             manager.generalize_all(args.commit or args.sync)
         if args.sync:
@@ -143,15 +147,14 @@ def main():
         """
         if args.sync:
             repository.pull()
-        if args.file:
-            manager.specialize(args.file, args.link)
+        if args.path:
+            manager.specialize(args.path, args.link)
         else:
             manager.specialize_all(args.link)
 
     # Check and parse arguments
     parser = prepare_argument_parser()
     args = parser.parse_args()
-    init = args.init is not None
 
     # Enable verbose mode if requested
     verbose = False
@@ -159,18 +162,18 @@ def main():
         verbose = True
 
     # Prepare paths
-    dotfile_repository_path = prepare_dotfile_repository_path(not init, verbose)
+    dotfile_repository_path = prepare_dotfile_repository_path(not args.init, verbose)
     dotfile_stage_path = prepare_dotfile_stage_path(verbose)
-    dotfile_tag_config_path = prepare_tag_config_path(args.bootstrap or init,
+    dotfile_tag_config_path = prepare_tag_config_path(args.bootstrap or args.init,
                                                       dotfile_repository_path,
-                                                      not init,
+                                                      not args.init,
                                                       verbose)
 
     # If desired, initialize or clone the dotfile repository and exit
     repository = Repository(dotfile_repository_path, verbose)
-    if init:
-        if args.init:
-            repository.clone(args.init)
+    if args.init:
+        if args.path:
+            repository.clone(args.path)
         else:
             repository.initialize(dotfile_tag_config_path)
 
