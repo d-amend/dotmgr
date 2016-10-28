@@ -118,7 +118,7 @@ class Repository(object):
         except GitCommandError as error:
             print(error.stderr)
 
-    def update(self, dotfile_path):
+    def update(self, dotfile_path, message=None):
         """Commits changes to a dotfile.
 
         Args:
@@ -129,8 +129,12 @@ class Repository(object):
             return
 
         print('Committing changes to {}'.format(dotfile_path))
+        if message:
+            commit_message = '{}: {}'.format(dotfile_path, message)
+        else:
+            commit_message = 'Update {}'.format(dotfile_path)
         try:
             self._git().add(dotfile_path)
-            self._git().commit(message='Update {}'.format(dotfile_path))
+            self._git().commit(message=commit_message)
         except GitCommandError as error:
             print(error.stderr)

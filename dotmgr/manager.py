@@ -93,7 +93,7 @@ class Manager(object):
         self._perform_on_stage(self.delete, False, False)
         rmtree(self.dotfile_stage_path)
 
-    def generalize(self, dotfile_path, commit):
+    def generalize(self, dotfile_path, commit, message=None):
         """Generalizes a dotfile from the stage.
 
         Identifies and un-comments blocks deactivated for this host.
@@ -159,7 +159,7 @@ class Manager(object):
             filter_and_write(specific_content, generic_dotfile)
 
         if commit:
-            self.dotfile_repository.update(dotfile_path)
+            self.dotfile_repository.update(dotfile_path, message)
 
     def generalize_all(self, commit):
         """Generalizes all dotfiles on the stage and writes results to the repository.

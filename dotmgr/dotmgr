@@ -38,7 +38,7 @@ def prepare_argument_parser():
                            dotmgr [-v]                     -I [repo]
                            dotmgr [-v] [-b]      [-c | -s] -A <file>
                            dotmgr [-v] [-b] [-r] [-c | -s] -D [file]
-                           dotmgr [-v] [-b]      [-c | -s] -G [file]
+                           dotmgr [-v] [-b]      [-c | -s] -G [file] [message]
                            dotmgr [-v] [-b] [-l]      [-s] -S [file]
                            dotmgr [-v]                     -V <command...>
                             """),
@@ -83,6 +83,8 @@ def prepare_argument_parser():
     parser.add_argument('file', nargs='?', default=False,
                         help='a relative path to a dotfile - if omitted, the requested action is '
                              'performed for all dotfiles')
+    parser.add_argument('message', nargs='?', default=None,
+                        help='a commit message for git')
 
     flags = parser.add_argument_group('modifiers')
     flags.add_argument('-b', dest='bootstrap', action='store_true',
@@ -130,7 +132,7 @@ def main():
         """Helper function for the -G action.
         """
         if args.file:
-            manager.generalize(args.file, args.commit or args.sync)
+            manager.generalize(args.file, args.commit or args.sync, args.message)
         else:
             manager.generalize_all(args.commit or args.sync)
         if args.sync:
