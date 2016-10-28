@@ -124,6 +124,10 @@ class Repository(object):
         Args:
             dotfile_path: The relative path to the dotfile to commit.
         """
+        # Skip if the file has not changed
+        if not self._git().diff(dotfile_path, name_only=True):
+            return
+
         print('Committing changes to {}'.format(dotfile_path))
         try:
             self._git().add(dotfile_path)
