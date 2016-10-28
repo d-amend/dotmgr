@@ -6,8 +6,8 @@ The generic dotfiles are stored in an external repository. Comments are used to 
 (tag-blocks) that should be commented out or used (uncommented) when a certain tag is active.
 Note that for this to work, the first line of a dotfile must begin with a comment.
 
-The dotfile repository path default is `~/repositories/dotfiles`. It can be modified using the
-environment variable `$DOTMGR_REPO`.
+The dotfile repository path default is `~/.local/share/dotmgr/repository`. It can be modified using
+the environment variable `$DOTMGR_REPO`.
 
 ## Tag configuration
 The script relies on a simple configuration file that defines active tags for hostnames in the
