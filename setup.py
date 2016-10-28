@@ -1,5 +1,7 @@
 from distutils.core import setup
 from setuptools import find_packages
+from git.cmd import Git
+
 setup(
     name='dotmgr',
     description='A small script that can help you maintain your dotfiles across several devices',
@@ -8,7 +10,8 @@ setup(
     author_email='haggl@sineband.de',
     url='https://github.com/haggl/dotmgr',
     license='GPLv3+',
-    scripts=['dotmgr.py'],
+    version=Git().describe(tags=True, dirty=True, always=True),
     packages=find_packages(),
-    version='0.1.0'
+    scripts=['dotmgr/dotmgr'],
+    install_requires=['gitpython']
 )

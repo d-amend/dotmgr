@@ -45,7 +45,7 @@ done
 rm $temp
 
 # Call Doxygen
-$DOXYGEN -d functions $1
+$DOXYGEN $1
 
 # Restore working directory state
 git checkout $SCM_VERBOSITY .
