@@ -16,12 +16,12 @@
 """
 
 from os import makedirs
-from os.path import dirname, isdir, join
+from os.path import dirname, isdir, isfile, join
 from socket import gethostname
 
 from git import Repo
 from git.cmd import Git
-from git.exc import GitCommandError
+from git.exc import GitCommandError, InvalidGitRepositoryError
 
 
 class Repository(object):
@@ -90,32 +90,38 @@ class Repository(object):
         print(self._git().execute(args))
 
     def initialize(self, tag_config_path):
-        """Initializes an empty git repository and creates an initial tag configuration.
+        """Initializes an empty git repository and creates and commits an initial tag configuration.
+
+        If the directory already exists, only the tag configuration file is created and committed.
 
         Args:
             tag_config_path: The (relative) path to the dotfile tag configuration.
         """
-        print('Initializing empty repository in {}'.format(self.path))
-        if isdir(self.path):
-            print('Error: The target directory already exists.')
-            exit()
-        try:
-            Git().init(self.path)
-        except GitCommandError as error:
-            print(error.stderr)
+        if not isdir(self.path):
+            print('Initializing empty repository in {}'.format(self.path))
+            try:
+                Git().init(self.path)
+            except GitCommandError as error:
+                print(error.stderr)
+                exit()
 
-        print('Creating initial tag configuration')
+        try:
+            self._git().rev_parse()
+        except InvalidGitRepositoryError:
+            print('Initializing repository in existing directory {}'.format(self.path))
+            try:
+                Git(self.path).init()
+            except GitCommandError:
+                print(error.stderr)
+                exit()
+
         full_path = join(self.path, tag_config_path)
-        makedirs(dirname(full_path))
-        with open(full_path, 'w') as tag_config:
-            tag_config.write('{0}: {0}'.format(gethostname()))
-
-        print('Committing tag configuration')
-        try:
-            self._git().add(tag_config_path)
-            self._git().commit(message='Add initial dotmgr tag configuration')
-        except GitCommandError as error:
-            print(error.stderr)
+        if not isfile(full_path):
+            print('Creating initial tag configuration')
+            makedirs(dirname(full_path), exist_ok=True)
+            with open(full_path, 'w') as tag_config:
+                tag_config.write('{0}: {0}'.format(gethostname()))
+            self.add(tag_config_path)
 
     def push(self):
         """Pushes to upstream.
