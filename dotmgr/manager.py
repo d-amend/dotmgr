@@ -153,7 +153,7 @@ class Manager(object):
                 specific_content = specific_dotfile.readlines()
         except FileNotFoundError:
             print('It seems {0} is not handled by dotmgr.\n'
-                  'You can add it with `{1} -a {0}`.'.format(dotfile_path, __file__))
+                  'You can add it with `dotmgr -A {0}`.'.format(dotfile_path))
         if not specific_content:
             return
 
