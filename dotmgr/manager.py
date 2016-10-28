@@ -55,7 +55,10 @@ class Manager(object):
         print('Moving dotfile   {} => {}'.format(home, stage))
         move(home, stage)
         self.link(dotfile_path)
-        self.generalize(dotfile_path, commit)
+        self.generalize(dotfile_path, False)
+
+        if commit:
+            self.dotfile_repository.add(dotfile_path)
 
     def delete(self, dotfile_path, rm_repo, commit):
         """Removes a dotfile from the stage and the symlink from $HOME.

@@ -37,10 +37,34 @@ class Repository(object):
         self.verbose = verbose
         self._git_instance = None
 
+    def _commit_file(self, dotfile_path, message):
+        """Commit helper function.
+
+        Args:
+            dotfile_path: The relative path to the dotfile to commit.
+            message:      A commit message.
+        """
+        print('Committing {}'.format(dotfile_path))
+        try:
+            self._git().stage(dotfile_path)
+            self._git().commit(message=message)
+        except GitCommandError as error:
+            print(error.stderr)
+
     def _git(self):
+        """Singleton factory for the Git object.
+        """
         if not self._git_instance:
             self._git_instance = Repo(self.path).git
         return self._git_instance
+
+    def add(self, dotfile_path):
+        """Adds and commits a new dotfile.
+
+        Args:
+            dotfile_path: The relative path to the dotfile to commit.
+        """
+        self._commit_file(dotfile_path, 'Add {}'.format(dotfile_path))
 
     def clone(self, url):
         """Clones a dotfile repository.
@@ -123,18 +147,12 @@ class Repository(object):
 
         Args:
             dotfile_path: The relative path to the dotfile to commit.
+            message:      A commit message. If omitted, a default message is generated.
         """
         # Skip if the file has not changed
         if not self._git().diff(dotfile_path, name_only=True):
             return
 
-        print('Committing changes to {}'.format(dotfile_path))
-        if message:
-            commit_message = '{}: {}'.format(dotfile_path, message)
-        else:
-            commit_message = 'Update {}'.format(dotfile_path)
-        try:
-            self._git().add(dotfile_path)
-            self._git().commit(message=commit_message)
-        except GitCommandError as error:
-            print(error.stderr)
+        if not message:
+            message = 'Update {}'.format(dotfile_path)
+        self._commit_file(dotfile_path, message)
