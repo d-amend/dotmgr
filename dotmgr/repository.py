@@ -52,7 +52,12 @@ class Repository(object):
         """Singleton factory for the Git object.
         """
         if not self._git_instance:
-            self._git_instance = Repo(self.path).git
+            try:
+                self._git_instance = Repo(self.path).git
+            except InvalidGitRepositoryError:
+                print('Error: {} is not a git repository!\n'
+                      '       You can try running `dotmgr -I` to initialize it.'.format(self.path))
+                exit()
         return self._git_instance
 
     def add(self, dotfile_path):
