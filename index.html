@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <link href='https://fonts.googleapis.com/css?family=Chivo:900' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-dark.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <title>Dotmgr by haggl</title>
+  </head>
+
+  <body>
+    <div id="container">
+      <div class="inner">
+
+        <header>
+          <h1>Dotmgr</h1>
+          <h2>A small script that can help you maintain your dotfiles across several devices</h2>
+        </header>
+
+        <section id="downloads" class="clearfix">
+          <a href="https://github.com/haggl/dotmgr/zipball/master" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/haggl/dotmgr/tarball/master" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          <a href="https://github.com/haggl/dotmgr" id="view-on-github" class="button"><span>View on GitHub</span></a>
+        </section>
+
+        <hr>
+
+        <section id="main_content">
+          <h1>
+<a id="dotfile-manager" class="anchor" href="#dotfile-manager" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Dotfile Manager</h1>
+
+<p>A tag-based dotfile manager for multiple machines written in Python3.</p>
+
+<h2>
+<a id="dotfile-repository" class="anchor" href="#dotfile-repository" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Dotfile repository</h2>
+
+<p>The generic dotfiles are stored in an external repository. Comments are used to indicate blocks
+(tag-blocks) that should be commented out or used (uncommented) when a certain tag is active.
+Note that for this to work, the first line of a dotfile must begin with a comment.</p>
+
+<p>The dotfile repository path default is <code>~/repositories/dotfiles</code>. It can be modified using the
+environment variable <code>$DOTMGR_REPO</code>.</p>
+
+<h2>
+<a id="tag-configuration" class="anchor" href="#tag-configuration" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Tag configuration</h2>
+
+<p>The script relies on a simple configuration file that defines active tags for hostnames in the
+following format:</p>
+
+<pre><code>hostnameA: tagA1 tagA2 ...
+hostnameB: tagB1 tagB2 ...
+</code></pre>
+
+<p>This file is normally read from <code>.config/dotmgr/tags.conf</code> in your home directory. You can
+override this default by setting the environment variable <code>$DOTMGR_TAG_CONF</code>.</p>
+
+<p>You can (and should) also store the file in your dotfile repository. The script provides a special
+command line option that allows you to read the tag configuration from your dotfile repository the
+first time you run the script. Please see "Getting started" below for details.</p>
+
+<h2>
+<a id="tag-blocks" class="anchor" href="#tag-blocks" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Tag-blocks</h2>
+
+<p>Create tag-blocks using a double comment sequence and the keyword <code>only</code> or <code>not</code>. A double comment
+sequence followed by <code>end</code> ends a tag-block:</p>
+
+<pre><code>##only tagA tagB
+# ordinary comment
+echo Hello dotmgr
+##end
+
+##not tagC
+echo Non-tagC hosts only
+##end
+</code></pre>
+
+<p>Tag-blocks can also be written in an if-else kind of style:</p>
+
+<pre><code>##only tagA
+echo Hello dotmgr
+##not tagB
+echo Cheers dotmgr
+##end
+</code></pre>
+
+<h2>
+<a id="stage-directory" class="anchor" href="#stage-directory" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Stage directory</h2>
+
+<p>This directory contains the specific dotfiles for the current host. During installation
+(specialization), dotmgr creates symlinks in the system ($HOME, /etc/(not yet)) that point to the
+stage.</p>
+
+<p>The default path is <code>~/.local/share/dotmgr/stage</code> and can be overriden with the environment
+variable <code>$DOTMGR_STAGE</code>.</p>
+
+<h2>
+<a id="dotfile-specialization" class="anchor" href="#dotfile-specialization" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Dotfile specialization</h2>
+
+<p>This is the workflow for generating specific dotfiles for the current hostname and installing them
+in the system:</p>
+
+<ol>
+<li>Read the tags activated for this hostname from the tag configuration</li>
+<li>Create specific dotfiles by (un)commenting tag-blocks</li>
+<li>Write them to the stage directory</li>
+<li>(optional) Create symlinks</li>
+</ol>
+
+<h2>
+<a id="dotfile-generalization" class="anchor" href="#dotfile-generalization" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Dotfile generalization</h2>
+
+<p>The generalized dotfile representation resides in the dotfile repository. Here, all tag-blocks are
+uncommented to allow editing using syntax highlighting.</p>
+
+<p>You can create generic dotfiles from dotfiles currently on stage. This process, reverses the changes
+of the specialization and removes all comments from tag-blocks.</p>
+
+<p>You can also directly add a file from the system, in which case the following steps are performed:</p>
+
+<ol>
+<li>Move the file to the stage</li>
+<li>Create a symlink to the file on stage</li>
+<li>Generalize the file</li>
+<li>Write it to the dotfile repository</li>
+</ol>
+
+<h2>
+<a id="getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Getting started</h2>
+
+<p>Clone your dotfile repository:</p>
+
+<pre><code>mkdir -p ~/repositories
+cd ~/repositories
+git clone git@github.com:&lt;user&gt;/dotfiles.git
+</code></pre>
+
+<p>Create a tag.conf:</p>
+
+<pre><code>cd ~/repositories/dotfiles
+mkdir -p .config/dotmgr
+vim .config/dotmgr/tags.conf
+</code></pre>
+
+<p>Specialize and link all dotfiles in bootstrapping mode:</p>
+
+<pre><code>dotmgr.py -bSL
+</code></pre>
+
+<p>On consecutive invocations of the script you can omit the <code>-b</code> flag, as the tag configuration is now
+symlinked linked to your home directory. Please refer to the scripts <code>--help</code> option for more
+information on command line options and arguments.</p>
+
+<h2>
+<a id="advanced-vim-magic" class="anchor" href="#advanced-vim-magic" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Advanced vim magic</h2>
+
+<p>Adding the following line to your .vimrc automagically invokes the script each time you save a file
+in your home directory:</p>
+
+<pre><code>autocmd BufWritePost ~/.* !dotmgr.py -g %
+</code></pre>
+        </section>
+
+        <footer>
+          Dotmgr is maintained by <a href="https://github.com/haggl">haggl</a><br>
+          This page was generated by <a href="https://pages.github.com">GitHub Pages</a>. Tactile theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.
+        </footer>
+
+        
+      </div>
+    </div>
+  </body>
+</html>
