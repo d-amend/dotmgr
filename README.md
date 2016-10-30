@@ -78,23 +78,23 @@ You can also directly add a file from the system, in which case the following st
 4. Write it to the dotfile repository
 
 ## Getting started
-Clone your dotfile repository:
+If you already have a repository containing your dotfiles, you can simply clone it:
 ```
-mkdir -p ~/repositories
-cd ~/repositories
-git clone git@github.com:<user>/dotfiles.git
+dotmgr -I git@github.com:<user>/dotfiles.git
 ```
 
-Create a tag.conf:
+If the tag configuration is not found, `dotmgr` will automatically create one and commit it.
+If you do not have a repository yet, you can let `dotmgr` create one for you:
 ```
-cd ~/repositories/dotfiles
-mkdir -p .config/dotmgr
-vim .config/dotmgr/tags.conf
+dotmgr -I git@github.com:<user>/dotfiles.git
 ```
 
-Specialize and link all dotfiles in bootstrapping mode:
+This will also generate and commit an initial tag configuration.
+
+When the repository is set up, you can specialize and link all dotfiles in bootstrapping mode, which
+reads the tag configuration from the repository instead of your home directory:
 ```
-dotmgr -blS
+dotmgr -Sbl
 ```
 
 On consecutive invocations of the script you can omit the `-b` flag, as the tag configuration is now
