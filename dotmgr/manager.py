@@ -105,6 +105,7 @@ class Manager(object):
         Args:
             dotfile_path: The relative path to the dotfile to generalize.
             commit:       If `True`, the changes are automatically committed to the repository.
+            message:      An optional commit message. If omitted, a default message is generated.
         """
         def filter_and_write(content, dotfile):
             """Filters the content of a specific dotfile and writes a generic one.
