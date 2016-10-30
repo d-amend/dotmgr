@@ -9,7 +9,7 @@ setup(
     author_email='haggl@sineband.de',
     url='https://github.com/haggl/dotmgr',
     license='GPLv3+',
-    version='0.2.0',
+    version='0.2.1',
     packages=find_packages(),
     scripts=['dotmgr/dotmgr'],
     install_requires=['gitpython']
