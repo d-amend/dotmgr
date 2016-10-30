@@ -176,6 +176,7 @@ def main():
             repository.clone(args.path)
         else:
             repository.initialize(dotfile_tag_config_path)
+        exit()
 
     # Fire up dotfile manager instance
     manager = Manager(repository, dotfile_stage_path, dotfile_tag_config_path, verbose)
