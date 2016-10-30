@@ -32,22 +32,46 @@
 
         <section id="main_content">
           <h1>
-<a id="dotfile-manager" class="anchor" href="#dotfile-manager" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Dotfile Manager</h1>
+<a id="what-is-dotmgr" class="anchor" href="#what-is-dotmgr" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>What is <code>dotmgr</code>?</h1>
 
-<p>A tag-based dotfile manager for multiple machines written in Python3.</p>
+<p><code>dotmgr</code> is a little helper script you can use to manage and deploy your dotfiles across multiple
+machines. The idea is to define tags for the different hosts, such as "laptop", "headless" or "work"
+and filter dotfile templates containing configurations for all hosts based on those tags.</p>
 
-<h2>
-<a id="dotfile-repository" class="anchor" href="#dotfile-repository" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Dotfile repository</h2>
-
-<p>The generic dotfiles are stored in an external repository. Comments are used to indicate blocks
-(tag-blocks) that should be commented out or used (uncommented) when a certain tag is active.
-Note that for this to work, the first line of a dotfile must begin with a comment.</p>
-
-<p>The dotfile repository path default is <code>~/repositories/dotfiles</code>. It can be modified using the
-environment variable <code>$DOTMGR_REPO</code>.</p>
+<h1>
+<a id="getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Getting started</h1>
 
 <h2>
-<a id="tag-configuration" class="anchor" href="#tag-configuration" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Tag configuration</h2>
+<a id="initial-run" class="anchor" href="#initial-run" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Initial run</h2>
+
+<p>If you already have a repository containing your dotfiles, you can simply clone it:</p>
+
+<pre><code>dotmgr -I git@github.com:&lt;user&gt;/dotfiles.git
+</code></pre>
+
+<p>If the tag configuration is not found, <code>dotmgr</code> will automatically create one and commit it.
+If you do not have a repository yet, you can let <code>dotmgr</code> create one for you:</p>
+
+<pre><code>dotmgr -I git@github.com:&lt;user&gt;/dotfiles.git
+</code></pre>
+
+<p>This will also generate and commit an initial tag configuration.</p>
+
+<p>When the repository is set up, you can specialize and link all dotfiles in bootstrapping mode, which
+reads the tag configuration from the repository instead of your home directory:</p>
+
+<pre><code>dotmgr -Sbl
+</code></pre>
+
+<p>On consecutive invocations of the script you can omit the <code>-b</code> flag, as the tag configuration is now
+symlinked linked to your home directory. Please refer to the scripts <code>--help</code> option for more
+information on command line options and arguments.</p>
+
+<h2>
+<a id="files-and-directories" class="anchor" href="#files-and-directories" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Files and directories</h2>
+
+<h3>
+<a id="tag-configuration" class="anchor" href="#tag-configuration" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Tag configuration</h3>
 
 <p>The script relies on a simple configuration file that defines active tags for hostnames in the
 following format:</p>
@@ -59,44 +83,79 @@ hostnameB: tagB1 tagB2 ...
 <p>This file is normally read from <code>.config/dotmgr/tags.conf</code> in your home directory. You can
 override this default by setting the environment variable <code>$DOTMGR_TAG_CONF</code>.</p>
 
-<p>You can (and should) also store the file in your dotfile repository. The script provides a special
-command line option that allows you to read the tag configuration from your dotfile repository the
-first time you run the script. Please see "Getting started" below for details.</p>
+<p>You can (and should) also store the configuration in your dotfile repository. The script provides a
+special command line option that allows you to read the tag configuration from your dotfile
+repository the first time you run the script. Please see "Getting started" for details.</p>
 
-<h2>
-<a id="tag-blocks" class="anchor" href="#tag-blocks" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Tag-blocks</h2>
+<h3>
+<a id="dotfile-repository" class="anchor" href="#dotfile-repository" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Dotfile repository</h3>
 
-<p>Create tag-blocks using a double comment sequence and the keyword <code>only</code> or <code>not</code>. A double comment
-sequence followed by <code>end</code> ends a tag-block:</p>
+<p>Dotfile templates - also called "generic dotfiles" - are stored in a git repository. Each dotfile's
+path relative to the repository's root directory is the same as relative to your home directory.</p>
 
-<pre><code>##only tagA tagB
-# ordinary comment
-echo Hello dotmgr
-##end
+<p>Special comments in the dotfiles are used to indicate blocks (tag-blocks) that should either be
+commented out or left intact, depending on the tags activated for a host. Note that for this to
+work, the first line of a dotfile <strong>must</strong> begin with a comment.</p>
 
-##not tagC
-echo Non-tagC hosts only
-##end
-</code></pre>
+<p>The dotfile repository path default is <code>~/.local/share/dotmgr/repository</code>. It can be modified using
+the environment variable <code>$DOTMGR_REPO</code>.</p>
 
-<p>Tag-blocks can also be written in an if-else kind of style:</p>
+<h3>
+<a id="stage-directory" class="anchor" href="#stage-directory" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Stage directory</h3>
 
-<pre><code>##only tagA
-echo Hello dotmgr
-##not tagB
-echo Cheers dotmgr
-##end
-</code></pre>
-
-<h2>
-<a id="stage-directory" class="anchor" href="#stage-directory" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Stage directory</h2>
-
-<p>This directory contains the specific dotfiles for the current host. During installation
-(specialization), dotmgr creates symlinks in the system ($HOME, /etc/(not yet)) that point to the
-stage.</p>
+<p>This directory contains the specific dotfiles for the current host, organized exactly as in your
+home directory and the repository. During installation (specialization), dotmgr creates symlinks in
+your home directory that point to the stage.</p>
 
 <p>The default path is <code>~/.local/share/dotmgr/stage</code> and can be overriden with the environment
 variable <code>$DOTMGR_STAGE</code>.</p>
+
+<h2>
+<a id="workflow" class="anchor" href="#workflow" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Workflow</h2>
+
+<p>After you have changed a file, you can re-generalize it, for example:</p>
+
+<pre><code>dotmgr -G .vimrc
+</code></pre>
+
+<p>Omitting the file path (which has to be a path relative to your home directory) lets you generalize
+all dotfiles one by one.</p>
+
+<p>When files in the dotfile repository change, you can apply those changes to your "hot" dotfiles:</p>
+
+<pre><code>dotmgr -Sl
+</code></pre>
+
+<p>It is always best to pass the <code>-l</code> option along, in order to automatically link new dotfiles. If
+you want to specialize only a single file, just add its path to the command line.</p>
+
+<p>You can tell <code>dotmgr</code> about a new dotfile it should care about by issuing:</p>
+
+<pre><code>dotmgr -A &lt;file&gt;
+</code></pre>
+
+<p>To forget about a file, delete it from both the stage and the repository:</p>
+
+<pre><code>dotmgr -Dr &lt;file&gt;
+</code></pre>
+
+<h2>
+<a id="git-integration" class="anchor" href="#git-integration" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Git integration</h2>
+
+<p>The program can interact with the repository and automate or at least simplify some pretty
+repetitive actions when managing dotfiles. There are options for</p>
+
+<ul>
+<li>initialization or cloning of remote repositories as shown in "Getting started",</li>
+<li>automatically committing changes to dotfiles,</li>
+<li>automatically synchronizing with a remote repository before specialization / after generalization.</li>
+</ul>
+
+<p>In addition, theres an option that lets you execute git commands in the dotfile repository without
+having to <code>cd</code> into it first. Please refer to <code>--help</code> for more information.</p>
+
+<h1>
+<a id="filtering" class="anchor" href="#filtering" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Filtering</h1>
 
 <h2>
 <a id="dotfile-specialization" class="anchor" href="#dotfile-specialization" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Dotfile specialization</h2>
@@ -130,38 +189,37 @@ of the specialization and removes all comments from tag-blocks.</p>
 </ol>
 
 <h2>
-<a id="getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Getting started</h2>
+<a id="tag-blocks" class="anchor" href="#tag-blocks" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Tag-blocks</h2>
 
-<p>Clone your dotfile repository:</p>
+<p>Create tag-blocks using a double comment sequence and the keyword <code>only</code> or <code>not</code>. A double comment
+sequence followed by <code>end</code> ends a tag-block:</p>
 
-<pre><code>mkdir -p ~/repositories
-cd ~/repositories
-git clone git@github.com:&lt;user&gt;/dotfiles.git
+<pre><code>##only tagA tagB
+# ordinary comment
+echo Hello dotmgr
+##end
+
+##not tagC
+echo Non-tagC hosts only
+##end
 </code></pre>
 
-<p>Create a tag.conf:</p>
+<p>Tag-blocks can also be written in an if-else kind of style:</p>
 
-<pre><code>cd ~/repositories/dotfiles
-mkdir -p .config/dotmgr
-vim .config/dotmgr/tags.conf
+<pre><code>##only tagA
+echo Hello dotmgr
+##not tagB
+echo Cheers dotmgr
+##end
 </code></pre>
 
-<p>Specialize and link all dotfiles in bootstrapping mode:</p>
+<h1>
+<a id="advanced-vim-magic" class="anchor" href="#advanced-vim-magic" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Advanced vim magic</h1>
 
-<pre><code>dotmgr.py -bSL
-</code></pre>
+<p>Adding the following line to your .vimrc automagically invokes the script each time you save a
+dotfile in your home directory:</p>
 
-<p>On consecutive invocations of the script you can omit the <code>-b</code> flag, as the tag configuration is now
-symlinked linked to your home directory. Please refer to the scripts <code>--help</code> option for more
-information on command line options and arguments.</p>
-
-<h2>
-<a id="advanced-vim-magic" class="anchor" href="#advanced-vim-magic" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Advanced vim magic</h2>
-
-<p>Adding the following line to your .vimrc automagically invokes the script each time you save a file
-in your home directory:</p>
-
-<pre><code>autocmd BufWritePost ~/.* !dotmgr.py -g %
+<pre><code>autocmd BufWritePost ~/.* !dotmgr -G %
 </code></pre>
         </section>
 
