@@ -1,6 +1,5 @@
 from distutils.core import setup
 from setuptools import find_packages
-from git.cmd import Git
 
 setup(
     name='dotmgr',
@@ -10,7 +9,7 @@ setup(
     author_email='haggl@sineband.de',
     url='https://github.com/haggl/dotmgr',
     license='GPLv3+',
-    version=Git().describe(tags=True, dirty=True, always=True),
+    version='0.2.0',
     packages=find_packages(),
     scripts=['dotmgr/dotmgr'],
     install_requires=['gitpython']
