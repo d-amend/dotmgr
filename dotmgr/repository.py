@@ -45,8 +45,8 @@ class Repository(object):
             message:      A commit message.
         """
         print('Committing {}'.format(dotfile_path))
-        _interact(lambda: self._git().stage(dotfile_path))
-        _interact(lambda: self._git().commit(message=message))
+        _exec_fancy(lambda: self._git().stage(dotfile_path))
+        _exec_fancy(lambda: self._git().commit(message=message))
 
     def _git(self):
         """Singleton factory for the Git object.
@@ -75,10 +75,7 @@ class Repository(object):
             url: The URL of the repository to clone.
         """
         print('Cloning {} into {}'.format(url, self.path))
-        try:
-            Git().clone(url, self.path)
-        except GitCommandError as error:
-            print(error.stderr)
+        _exec_raw(lambda: Git().clone(url, self.path))
 
     def execute(self, args):
         """Executes a git command in the dotfile repository.
@@ -89,37 +86,25 @@ class Repository(object):
         args.insert(0, 'git')
         if self.verbose:
             print('Executing `{}`'.format(' '.join(args)))
-        try:
-            print(self._git().execute(args))
-        except GitCommandError as err:
-            # Forward stderr from git
-            print(err.args[2].decode('utf-8'))
+        _exec_raw(lambda: self._git().execute(args))
 
     def initialize(self, tag_config_path):
         """Initializes an empty git repository and creates and commits an initial tag configuration.
 
-        If the directory already exists, only the tag configuration file is created and committed.
+        If the repository already exists, only the tag configuration file is created and committed.
 
         Args:
             tag_config_path: The (relative) path to the dotfile tag configuration.
         """
         if not isdir(self.path):
             print('Initializing empty repository in {}'.format(self.path))
-            try:
-                Git().init(self.path)
-            except GitCommandError as error:
-                print(error.stderr)
-                exit()
+            _exec_raw(lambda: Git().init(self.path))
 
         try:
             self._git().rev_parse()
         except InvalidGitRepositoryError:
             print('Initializing repository in existing directory {}'.format(self.path))
-            try:
-                Git(self.path).init()
-            except GitCommandError:
-                print(error.stderr)
-                exit()
+            _exec_raw(lambda: Git(self.path).init())
 
         full_path = join(self.path, tag_config_path)
         if not isfile(full_path):
@@ -133,13 +118,13 @@ class Repository(object):
         """Pushes to upstream.
         """
         print('Pushing to upstream')
-        _interact(lambda: self._git().push())
+        _exec_fancy(lambda: self._git().push())
 
     def pull(self):
         """Pulls from upstream.
         """
         print('Pulling from upstream')
-        _interact(lambda: self._git().pull())
+        _exec_fancy(lambda: self._git().pull())
 
     def remove(self, dotfile_path):
         """Commits the removal of a dotfile.
@@ -148,8 +133,8 @@ class Repository(object):
             dotfile_path: The relative path to the dotfile to remove.
         """
         print('Committing removal of {}'.format(dotfile_path))
-        _interact(lambda: self._git().rm(dotfile_path, cached=True))
-        _interact(lambda: self._git().commit(message='Remove {}'.format(dotfile_path)))
+        _exec_fancy(lambda: self._git().rm(dotfile_path, cached=True))
+        _exec_fancy(lambda: self._git().commit(message='Remove {}'.format(dotfile_path)))
 
     def update(self, dotfile_path, message=None):
         """Commits changes to a dotfile.
@@ -166,8 +151,11 @@ class Repository(object):
             message = 'Update {}'.format(dotfile_path)
         self._commit_file(dotfile_path, message)
 
-def _interact(func):
+def _exec_fancy(func):
     """Executes a git command and handles errors gracefully.
+
+    In case of errors a note on what failed and how to re-try the operation is printed and program
+    execution is aborted.
 
     Args:
         func:          A function that executes a git command.
@@ -180,4 +168,23 @@ def _interact(func):
         print('Error: Sorry, something went wrong during execution of `{}`. :-(\n'
               '       You can execute `dotmgr -V {}` to try again and find out what happened.'
               .format(cmdline, args))
+        exit()
+
+def _exec_raw(func):
+    """Executes a git command.
+
+    In case of errors the STDERR output of the command is printed and program execution is aborted.
+
+    Args:
+        func:          A function that executes a git command.
+    """
+    try:
+        func()
+    except GitCommandError as err:
+        cmdline = ' '.join(err.command)
+        print('Error: Execution of the command\n'
+              '       {}\n'
+              '       failed with the following message:'.format(cmdline))
+        # Forward stderr from git
+        print(err.args[2].decode('utf-8'))
         exit()
