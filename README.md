@@ -13,7 +13,7 @@ dotmgr -I git@github.com:<user>/dotfiles.git
 If the tag configuration is not found, `dotmgr` will automatically create one and commit it.
 If you do not have a repository yet, you can let `dotmgr` create one for you:
 ```
-dotmgr -I git@github.com:<user>/dotfiles.git
+dotmgr -I
 ```
 
 This will also generate and commit an initial tag configuration.
