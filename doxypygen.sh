@@ -37,7 +37,7 @@ git stash apply $SCM_VERBOSITY
 
 # Filter python files
 temp=`mktemp .$0_XXXXX`
-for file in `find . -name '*.py'`
+for file in `find dotmgr -type f`
 do
     doxypypy --autobrief --autocode $file > $temp
     cat $temp > $file
