@@ -45,11 +45,8 @@ class Repository(object):
             message:      A commit message.
         """
         print('Committing {}'.format(dotfile_path))
-        try:
-            self._git().stage(dotfile_path)
-            self._git().commit(message=message)
-        except GitCommandError as error:
-            print(error.stderr)
+        _interact(lambda: self._git().stage(dotfile_path))
+        _interact(lambda: self._git().commit(message=message))
 
     def _git(self):
         """Singleton factory for the Git object.
@@ -87,7 +84,11 @@ class Repository(object):
         args.insert(0, 'git')
         if self.verbose:
             print('Executing `{}`'.format(' '.join(args)))
-        print(self._git().execute(args))
+        try:
+            print(self._git().execute(args))
+        except GitCommandError as err:
+            # Forward stderr from git
+            print(err.args[2].decode('utf-8'))
 
     def initialize(self, tag_config_path):
         """Initializes an empty git repository and creates and commits an initial tag configuration.
@@ -127,13 +128,13 @@ class Repository(object):
         """Pushes to upstream.
         """
         print('Pushing to upstream')
-        self._git().push()
+        _interact(lambda: self._git().push())
 
     def pull(self):
         """Pulls from upstream.
         """
         print('Pulling from upstream')
-        self._git().pull()
+        _interact(lambda: self._git().pull())
 
     def remove(self, dotfile_path):
         """Commits the removal of a dotfile.
@@ -142,11 +143,8 @@ class Repository(object):
             dotfile_path: The relative path to the dotfile to remove.
         """
         print('Committing removal of {}'.format(dotfile_path))
-        try:
-            self._git().rm(dotfile_path, cached=True)
-            self._git().commit(message='Remove {}'.format(dotfile_path))
-        except GitCommandError as error:
-            print(error.stderr)
+        _interact(lambda: self._git().rm(dotfile_path, cached=True))
+        _interact(lambda: self._git().commit(message='Remove {}'.format(dotfile_path)))
 
     def update(self, dotfile_path, message=None):
         """Commits changes to a dotfile.
@@ -162,3 +160,19 @@ class Repository(object):
         if not message:
             message = 'Update {}'.format(dotfile_path)
         self._commit_file(dotfile_path, message)
+
+def _interact(func):
+    """Executes a git command and handles errors gracefully.
+
+    Args:
+        func:          A function that executes a git command.
+    """
+    try:
+        func()
+    except GitCommandError as err:
+        cmdline = ' '.join(err.command)
+        args = ' '.join(err.command[1:])
+        print('Error: Sorry, something went wrong during execution of `{}`. :-(\n'
+              '       You can execute `dotmgr -V {}` to try again and find out what happened.'
+              .format(cmdline, args))
+        exit()
