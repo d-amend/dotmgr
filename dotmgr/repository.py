@@ -86,7 +86,7 @@ class Repository(object):
         args.insert(0, 'git')
         if self.verbose:
             print('Executing `{}`'.format(' '.join(args)))
-        _exec_raw(lambda: self._git().execute(args))
+        print(_exec_raw(lambda: self._git().execute(args)))
 
     def initialize(self, tag_config_path):
         """Initializes an empty git repository and creates and commits an initial tag configuration.
@@ -179,7 +179,7 @@ def _exec_raw(func):
         func:          A function that executes a git command.
     """
     try:
-        func()
+        return func()
     except GitCommandError as err:
         cmdline = ' '.join(err.command)
         print('Error: Execution of the command\n'
