@@ -66,6 +66,10 @@ class Repository(object):
         Args:
             dotfile_path: The relative path to the dotfile to commit.
         """
+        if dotfile_path in self._git().ls_files():
+            if self.verbose:
+                print('File {} is already tracked - skipping commit'.format(dotfile_path))
+            return
         self._commit_file(dotfile_path, 'Add {}'.format(dotfile_path))
 
     def clone(self, url):
@@ -145,6 +149,8 @@ class Repository(object):
         """
         # Skip if the file has not changed
         if not self._git().diff(dotfile_path, name_only=True):
+            if self.verbose:
+                print('File {} has not changed - skipping commit'.format(dotfile_path))
             return
 
         if not message:
