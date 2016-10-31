@@ -46,16 +46,17 @@ class Manager(object):
             dotfile_path: The relative path to the dotfile to add.
             commit:       If `True`, the new dotfile is automatically committed to the repository.
         """
-        home = home_path(dotfile_path)
-        if islink(home):
+        source = home_path(dotfile_path)
+        if islink(source):
             if self.verbose:
-                print('File {} is a symlink. It seems it is already managed. \\o/'.format(home))
-            exit()
-        stage = self.stage_path(dotfile_path)
-        print('Moving dotfile   {} => {}'.format(home, stage))
-        move(home, stage)
-        self.link(dotfile_path)
-        self.generalize(dotfile_path, False)
+                print('File {} is a symlink. It seems it is already managed. \\o/'.format(source))
+        else:
+            destination = self.stage_path(dotfile_path)
+            print('Moving dotfile   {} => {}'.format(source, destination))
+            makedirs(dirname(destination), exist_ok=True)
+            move(source, destination)
+            self.link(dotfile_path)
+            self.generalize(dotfile_path, False)
 
         if commit:
             self.dotfile_repository.add(dotfile_path)
