@@ -8,3 +8,6 @@ doc/
 build/
 dist/
 dotmgr.egg-info/
+
+# virtualenv sandbox
+venv/
